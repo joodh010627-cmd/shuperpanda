@@ -6,6 +6,7 @@ import { TitleScene } from './scenes/titleScene.js';
 import { CutsceneScene } from './scenes/cutsceneScene.js';
 import { ControlsScene } from './scenes/controlsScene.js';
 import { BattleScene } from './scenes/battleScene.js';
+import { VideoScene } from './scenes/videoScene.js';
 
 class Game {
   constructor() {
@@ -87,8 +88,7 @@ class Game {
         this.scene = new CutsceneScene(this, 'stage2');
         break;
       case 'animation_stage':
-        // For now, let's show cutscene_stage2b as the animation stage
-        this.scene = new CutsceneScene(this, 'stage2b');
+        this.scene = new VideoScene(this, 'animation_stage2', 'title');
         break;
       case 'controls':
         this.scene = new ControlsScene(this);
