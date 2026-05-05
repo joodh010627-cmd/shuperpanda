@@ -32,40 +32,118 @@ const FROG_STATE_MAP = {
 // Cache for processed (chroma-keyed) sprites
 const spriteCache = {};
 
-function getProcessedSprite(sheetKey, index, cols, rows) {
+const sheetFramesCache = {};
+
+function extractFrames(sheet) {
+  if (sheetFramesCache[sheet.src]) return sheetFramesCache[sheet.src];
+
+  const canvas = document.createElement('canvas');
+  canvas.width = sheet.width;
+  canvas.height = sheet.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(sheet, 0, 0);
+  const imgData = ctx.getImageData(0, 0, sheet.width, sheet.height);
+  const data = imgData.data;
+
+  function isGreen(x, y) {
+    const i = (y * sheet.width + x) * 4;
+    const r = data[i], g = data[i+1], b = data[i+2];
+    return g > 150 && (g - r) > 80 && (g - b) > 80;
+  }
+
+  // Find row regions (horizontal bounds)
+  const rowRegions = [];
+  let inRow = false;
+  let rowStart = 0;
+  let emptyCount = 0;
+  for (let y = 0; y < sheet.height; y++) {
+    let empty = true;
+    for (let x = 0; x < sheet.width; x++) {
+      if (!isGreen(x, y)) { empty = false; break; }
+    }
+    if (!empty) {
+      if (!inRow) { inRow = true; rowStart = y; }
+      emptyCount = 0;
+    } else {
+      emptyCount++;
+      if (inRow && emptyCount > 10) { // 10px gap
+        inRow = false;
+        rowRegions.push({ y: rowStart, h: y - rowStart - 10 });
+      }
+    }
+  }
+  if (inRow) rowRegions.push({ y: rowStart, h: sheet.height - rowStart });
+
+  const frames = [];
+  for (const r of rowRegions) {
+    let inCol = false;
+    let colStart = 0;
+    let colEmptyCount = 0;
+    for (let x = 0; x < sheet.width; x++) {
+      let empty = true;
+      for (let y = r.y; y < r.y + r.h; y++) {
+        if (!isGreen(x, y)) { empty = false; break; }
+      }
+      if (!empty) {
+        if (!inCol) { inCol = true; colStart = x; }
+        colEmptyCount = 0;
+      } else {
+        colEmptyCount++;
+        if (inCol && colEmptyCount > 10) {
+          inCol = false;
+          frames.push({ x: colStart, y: r.y, w: x - colStart - 10, h: r.h });
+        }
+      }
+    }
+    if (inCol) frames.push({ x: colStart, y: r.y, w: sheet.width - colStart, h: r.h });
+  }
+
+  sheetFramesCache[sheet.src] = frames;
+  return frames;
+}
+
+function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
   const cacheKey = `${sheetKey}_${index}`;
   if (spriteCache[cacheKey]) return spriteCache[cacheKey];
 
   const sheet = assets.get(sheetKey);
   if (!sheet) return null;
 
-  const cellW = Math.floor(sheet.width / cols);
-  const cellH = Math.floor(sheet.height / rows);
-  const col = index % cols;
-  const row = Math.floor(index / cols);
+  const frames = extractFrames(sheet);
+  
+  let frame;
+  if (frames.length > 0) {
+    frame = frames[Math.min(index, frames.length - 1)];
+  } else {
+    // Fallback if auto-slice fails
+    const cellW = Math.floor(sheet.width / defaultCols);
+    const cellH = Math.floor(sheet.height / defaultRows);
+    frame = { 
+      x: (index % defaultCols) * cellW, 
+      y: Math.floor(index / defaultCols) * cellH, 
+      w: cellW, 
+      h: cellH 
+    };
+  }
 
-  // Create offscreen canvas for chroma key removal
   const canvas = document.createElement('canvas');
-  canvas.width = cellW;
-  canvas.height = cellH;
+  canvas.width = frame.w;
+  canvas.height = frame.h;
   const ctx = canvas.getContext('2d');
 
-  ctx.drawImage(sheet, col * cellW, row * cellH, cellW, cellH, 0, 0, cellW, cellH);
+  ctx.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
 
-  // Chroma key removal (green screen)
-  const imageData = ctx.getImageData(0, 0, cellW, cellH);
+  // Chroma key removal
+  const imageData = ctx.getImageData(0, 0, frame.w, frame.h);
   const data = imageData.data;
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2];
-    // Calculate how "green screen" this pixel is
-    // Pure chroma green has very high G, very low R and B
     const isChromaGreen = g > 150 && (g - r) > 80 && (g - b) > 80;
     const isBrightChroma = g > 200 && r < 80 && b < 80;
     
     if (isBrightChroma) {
-      data[i + 3] = 0; // Fully transparent
+      data[i + 3] = 0;
     } else if (isChromaGreen) {
-      // Semi-transparent for edge anti-aliasing
       const greenness = Math.min(1, ((g - Math.max(r, b)) - 40) / 120);
       data[i + 3] = Math.round((1 - greenness) * data[i + 3]);
     }
@@ -90,8 +168,9 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
     return;
   }
 
-  const drawW = 140; // display width
-  const drawH = 140; // display height
+  const drawH = 140; // fixed display height
+  const scale = drawH / sprite.height;
+  const drawW = sprite.width * scale;
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
@@ -143,8 +222,9 @@ export function drawFrog(ctx, x, y, facing, state, frame) {
     return;
   }
 
-  const drawW = 180; // boss is bigger
-  const drawH = 180;
+  const drawH = 180; // boss is bigger
+  const scale = drawH / sprite.height;
+  const drawW = sprite.width * scale;
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));

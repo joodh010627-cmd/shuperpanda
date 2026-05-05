@@ -31,53 +31,57 @@ export class ControlsScene {
     }
 
     // Title
-    ctx.font = '20px "Press Start 2P"';
+    ctx.font = '24px "Press Start 2P"';
     ctx.fillStyle = '#fbbf24';
     ctx.textAlign = 'center';
     ctx.fillText('조작 안내', CANVAS_W / 2, 50);
 
-    // Panda demo
-    drawPanda(ctx, 160, 280, 1, 'idle', this.frame);
+    // Panda demo (Scaled up)
+    ctx.save();
+    ctx.translate(160, 320);
+    ctx.scale(1.5, 1.5);
+    drawPanda(ctx, 0, 0, 1, 'idle', this.frame);
+    ctx.restore();
 
-    // Controls layout
+    // Controls layout (spaced out for larger text)
     const controls = [
       { key: '← →', desc: '이동', y: 120 },
-      { key: '←← / →→', desc: '대시 (더블 탭)', y: 160 },
-      { key: '↑', desc: '점프', y: 200 },
-      { key: '↓', desc: '방어 (데미지 감소)', y: 240 },
-      { key: 'Z', desc: '펀치 (빠른 공격)', y: 300 },
-      { key: 'X', desc: '발차기 (강공격)', y: 340 },
-      { key: 'C', desc: '레이저 (게이지 풀 시)', y: 380 },
+      { key: '←←/→→', desc: '대시 (더블 탭)', y: 170 },
+      { key: '↑', desc: '점프', y: 220 },
+      { key: '↓', desc: '방어 (데미지 감소)', y: 270 },
+      { key: 'Z', desc: '펀치 (빠른 공격)', y: 320 },
+      { key: 'X', desc: '발차기 (강공격)', y: 370 },
+      { key: 'C', desc: '레이저 (게이지 꽉 찰 때)', y: 420 },
     ];
 
     ctx.textAlign = 'left';
     controls.forEach(c => {
       // Key box
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(340, c.y - 18, 100, 28);
+      ctx.fillRect(340, c.y - 24, 120, 36);
       ctx.strokeStyle = '#3b82f6';
       ctx.lineWidth = 2;
-      ctx.strokeRect(340, c.y - 18, 100, 28);
-      ctx.font = '12px "Press Start 2P"';
+      ctx.strokeRect(340, c.y - 24, 120, 36);
+      ctx.font = '16px "Press Start 2P"';
       ctx.fillStyle = '#60a5fa';
-      ctx.fillText(c.key, 350, c.y + 2);
+      ctx.fillText(c.key, 350, c.y + 4);
 
       // Description
       ctx.fillStyle = '#e2e8f0';
-      ctx.font = '11px "Press Start 2P"';
-      ctx.fillText(c.desc, 460, c.y + 2);
+      ctx.font = '16px "Press Start 2P"';
+      ctx.fillText(c.desc, 480, c.y + 4);
     });
 
     // Gauge info
     ctx.fillStyle = '#f59e0b';
-    ctx.font = '10px "Press Start 2P"';
+    ctx.font = '14px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillText('💡 피격 시 게이지가 충전됩니다', CANVAS_W / 2 + 60, 430);
-    ctx.fillText('게이지가 꽉 차면 C키로 레이저!', CANVAS_W / 2 + 60, 455);
+    ctx.fillText('💡 피격 시 게이지가 충전됩니다', CANVAS_W / 2 + 60, 480);
+    ctx.fillText('게이지가 꽉 차면 C키로 필살기!', CANVAS_W / 2 + 60, 510);
 
     // Continue
     if (Math.floor(this.frame / 25) % 2 === 0) {
-      ctx.font = '14px "Press Start 2P"';
+      ctx.font = '18px "Press Start 2P"';
       ctx.fillStyle = '#fbbf24';
       ctx.textAlign = 'center';
       ctx.fillText('PRESS Z TO START BATTLE', CANVAS_W / 2, CANVAS_H - 40);

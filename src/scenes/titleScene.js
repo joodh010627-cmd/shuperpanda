@@ -22,23 +22,6 @@ export class TitleScene {
     if (titleImg) {
       // Draw the original title image scaled to fill canvas
       ctx.drawImage(titleImg, 0, 0, CANVAS_W, CANVAS_H);
-
-      // Add blinking "PRESS ANY KEY" overlay on top of original
-      if (this.frame > 60 && Math.floor(this.frame / 30) % 2 === 0) {
-        // Semi-transparent backdrop for text
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(CANVAS_W / 2 - 200, CANVAS_H * 0.82 - 18, 400, 36);
-
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.font = '16px "Press Start 2P"';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
-        ctx.strokeText('PRESS ANY KEY TO START', CANVAS_W / 2, CANVAS_H * 0.82);
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillText('PRESS ANY KEY TO START', CANVAS_W / 2, CANVAS_H * 0.82);
-        ctx.restore();
-      }
     } else {
       // Fallback if image not loaded
       ctx.fillStyle = '#1a1a2e';
