@@ -32,12 +32,10 @@ const FROG_STATE_MAP = {
 // Cache for processed (chroma-keyed) sprites
 const spriteCache = {};
 
-const sheetFramesCache = {};
-
-function extractFrames(sheet, cols, rows) {
+function extractFrames(sheet) {
   if (!sheet || !sheet.width || !sheet.height) return [];
 
-  const cacheKey = `${sheet.src || 'unknown'}_${cols}x${rows}`;
+  const cacheKey = `${sheet.src || 'unknown'}_cc`;
   if (sheetFramesCache[cacheKey]) return sheetFramesCache[cacheKey];
 
   try {
@@ -48,77 +46,112 @@ function extractFrames(sheet, cols, rows) {
     ctx.drawImage(sheet, 0, 0);
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
+    const width = canvas.width;
+    const height = canvas.height;
 
     function isGreen(x, y) {
-      if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return true;
-      const i = (y * canvas.width + x) * 4;
+      if (x < 0 || x >= width || y < 0 || y >= height) return true;
+      const i = (y * width + x) * 4;
       const r = data[i], g = data[i+1], b = data[i+2];
       return g > 150 && (g - r) > 80 && (g - b) > 80;
     }
 
-    const cellW = canvas.width / cols;
-    const cellH = canvas.height / rows;
-    const frames = [];
+    const visited = new Uint8Array(width * height);
+    let rects = [];
 
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const startX = Math.floor(c * cellW);
-        const startY = Math.floor(r * cellH);
-        const endX = Math.floor((c + 1) * cellW);
-        const endY = Math.floor((r + 1) * cellH);
+    // Find connected components
+    for (let y = 0; y < height; y += 2) {
+      for (let x = 0; x < width; x += 2) {
+        const idx = y * width + x;
+        if (!visited[idx] && !isGreen(x, y)) {
+          let minX = x, maxX = x, minY = y, maxY = y;
+          const stack = [x, y];
+          visited[idx] = 1;
 
-        let minX = endX, maxX = startX, minY = endY, maxY = startY;
-        let hasPixels = false;
+          while (stack.length > 0) {
+            const cy = stack.pop();
+            const cx = stack.pop();
 
-        for (let y = startY; y < endY; y++) {
-          for (let x = startX; x < endX; x++) {
-            if (!isGreen(x, y)) {
-              hasPixels = true;
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-              if (y < minY) minY = y;
-              if (y > maxY) maxY = y;
+            if (cx < minX) minX = cx;
+            if (cx > maxX) maxX = cx;
+            if (cy < minY) minY = cy;
+            if (cy > maxY) maxY = cy;
+
+            const neighbors = [cx-2, cy, cx+2, cy, cx, cy-2, cx, cy+2, cx-1, cy, cx+1, cy, cx, cy-1, cx, cy+1];
+            for (let i = 0; i < neighbors.length; i += 2) {
+              const nx = neighbors[i];
+              const ny = neighbors[i+1];
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                const nidx = ny * width + nx;
+                if (!visited[nidx] && !isGreen(nx, ny)) {
+                  visited[nidx] = 1;
+                  stack.push(nx, ny);
+                }
+              }
             }
           }
-        }
 
-        if (hasPixels) {
-          frames.push({ x: minX, y: minY, w: Math.max(1, maxX - minX + 1), h: Math.max(1, maxY - minY + 1) });
-        } else {
-          frames.push({ x: startX, y: startY, w: Math.max(1, Math.floor(cellW)), h: Math.max(1, Math.floor(cellH)) });
+          if (maxX - minX > 20 && maxY - minY > 20) {
+            rects.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
+          }
         }
       }
     }
 
-    sheetFramesCache[cacheKey] = frames;
-    return frames;
+    // Merge nearby rects (handle detached parts like floating stars)
+    let merged = true;
+    while (merged) {
+      merged = false;
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          const r1 = rects[i];
+          const r2 = rects[j];
+          const distX = Math.max(0, Math.max(r1.x - (r2.x + r2.w), r2.x - (r1.x + r1.w)));
+          const distY = Math.max(0, Math.max(r1.y - (r2.y + r2.h), r2.y - (r1.y + r1.h)));
+          
+          if (distX <= 30 && distY <= 30) {
+            const nx = Math.min(r1.x, r2.x);
+            const ny = Math.min(r1.y, r2.y);
+            const nw = Math.max(r1.x + r1.w, r2.x + r2.w) - nx;
+            const nh = Math.max(r1.y + r1.h, r2.y + r2.h) - ny;
+            rects[i] = { x: nx, y: ny, w: nw, h: nh };
+            rects.splice(j, 1);
+            merged = true;
+            break;
+          }
+        }
+        if (merged) break;
+      }
+    }
+
+    // Sort by row (y tolerance) then column (x)
+    rects.sort((a, b) => {
+      if (Math.abs(a.y - b.y) < 100) return a.x - b.x;
+      return a.y - b.y;
+    });
+
+    sheetFramesCache[cacheKey] = rects;
+    return rects;
   } catch (e) {
     console.error('Sprite extraction error:', e);
     return [];
   }
 }
 
-function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
+function getProcessedSprite(sheetKey, index) {
   const cacheKey = `${sheetKey}_${index}`;
   if (spriteCache[cacheKey]) return spriteCache[cacheKey];
 
   const sheet = assets.get(sheetKey);
   if (!sheet || !sheet.width || !sheet.height) return null;
 
-  const frames = extractFrames(sheet, defaultCols, defaultRows);
+  const frames = extractFrames(sheet);
   
   let frame;
   if (frames.length > 0) {
     frame = frames[Math.min(index, frames.length - 1)];
   } else {
-    const cellW = Math.floor(sheet.width / defaultCols);
-    const cellH = Math.floor(sheet.height / defaultRows);
-    frame = { 
-      x: (index % defaultCols) * cellW, 
-      y: Math.floor(index / defaultCols) * cellH, 
-      w: Math.max(1, cellW), 
-      h: Math.max(1, cellH) 
-    };
+    frame = { x: 0, y: 0, w: Math.max(1, sheet.width/3), h: Math.max(1, sheet.height/3) };
   }
 
   try {
@@ -160,31 +193,32 @@ function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
 // ============================================================
 export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
   const index = PANDA_STATE_MAP[state] ?? 0;
-  const sprite = getProcessedSprite('panda_sprites', index, PANDA_COLS, PANDA_ROWS);
+  const sprite = getProcessedSprite('panda_sprites', index);
 
   if (!sprite) {
-    // Fallback: draw a simple rectangle if image not loaded
     ctx.fillStyle = '#2563eb';
     ctx.fillRect(x - 20, y - 50, 40, 50);
     return;
   }
 
-  const drawH = 210; // fixed display height (140 * 1.5)
-  const scale = drawH / sprite.height;
+  const sheet = assets.get('panda_sprites');
+  const baseCellH = sheet ? sheet.height / PANDA_ROWS : 341;
+  const targetDrawH = 210; // fixed display height scaling reference
+  const scale = targetDrawH / baseCellH;
+
   const drawW = sprite.width * scale;
+  const drawH = sprite.height * scale;
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
 
   if (facing === -1) ctx.scale(-1, 1);
 
-  // Idle bobbing
   const f = Math.floor(frame);
   let bobY = 0;
   if (state === 'idle') bobY = Math.sin(f * 0.08) * 3;
   if (state === 'hit') ctx.translate((f % 2 === 0) ? 3 : -3, 0);
 
-  // Draw dash speed lines
   if (state === 'dash') {
     ctx.globalAlpha = 0.4;
     for (let i = 1; i <= 3; i++) {
@@ -195,7 +229,6 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
 
   ctx.drawImage(sprite, -drawW / 2, -drawH + bobY, drawW, drawH);
 
-  // Laser beam effect
   if (state === 'laser' && f >= 2 && f < 20) {
     const beamW = 600;
     const flicker = Math.sin(f * 2) * 2;
@@ -215,7 +248,7 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
 // ============================================================
 export function drawFrog(ctx, x, y, facing, state, frame) {
   const index = FROG_STATE_MAP[state] ?? 0;
-  const sprite = getProcessedSprite('frog_sprites', index, FROG_COLS, FROG_ROWS);
+  const sprite = getProcessedSprite('frog_sprites', index);
 
   if (!sprite) {
     ctx.fillStyle = '#22c55e';
@@ -223,9 +256,13 @@ export function drawFrog(ctx, x, y, facing, state, frame) {
     return;
   }
 
-  const drawH = 270; // boss is bigger (180 * 1.5)
-  const scale = drawH / sprite.height;
+  const sheet = assets.get('frog_sprites');
+  const baseCellH = sheet ? sheet.height / FROG_ROWS : 341;
+  const targetDrawH = 270; // fixed display height scaling reference
+  const scale = targetDrawH / baseCellH;
+
   const drawW = sprite.width * scale;
+  const drawH = sprite.height * scale;
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
