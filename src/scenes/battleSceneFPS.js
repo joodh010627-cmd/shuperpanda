@@ -15,7 +15,7 @@ export class BattleSceneFPS {
     this.wave = 0;
     this.waveTimer = 0; 
     this.boss = { 
-      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 50, type: 'boss', hp: 300, active: true, scale: 0.8,
+      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 50, type: 'boss', hp: 300, active: true, scale: 0.5,
       state: 'idle', stateTimer: 0
     };
     this.enemies = [this.boss];
@@ -92,7 +92,7 @@ export class BattleSceneFPS {
       e.stateTimer = (e.stateTimer || 0) + 1;
 
       if (e.state === 'hit' && e.stateTimer > 6) {
-        e.state = (e.type === 'mini' && e.scale >= 1.5) ? 'attack' : 'idle';
+        e.state = (e.type === 'mini' && e.scale >= 0.6) ? 'attack' : 'idle';
       }
 
       if (e.type === 'mini') {
@@ -107,8 +107,8 @@ export class BattleSceneFPS {
           e.y += e.vy;
           e.scale += e.vScale;
           
-          if (e.scale >= 1.5) {
-            e.scale = 1.5;
+          if (e.scale >= 0.6) {
+            e.scale = 0.6;
             e.state = 'attack';
             e.stateTimer = 0;
           }
@@ -155,8 +155,8 @@ export class BattleSceneFPS {
         y: this.boss.y,
         vx: (targetX - this.boss.x) / framesToReach,
         vy: (targetY - this.boss.y) / framesToReach,
-        scale: 0.1,
-        vScale: (1.5 - 0.1) / framesToReach,
+        scale: 0.05,
+        vScale: (0.6 - 0.05) / framesToReach,
         type: 'mini',
         hp: 2, 
         active: true,
@@ -269,9 +269,14 @@ export class BattleSceneFPS {
           if (r.stateTimer > 30 && Math.floor(r.stateTimer / 5) % 2 === 0) ctx.globalAlpha = 0;
         }
 
+        // Use base image for consistent sizing while maintaining entity-specific aspect ratio
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
-        const drawW = (baseImg || img).width * r.scale;
-        const drawH = (baseImg || img).height * r.scale;
+        const aspect = img.width / img.height;
+        const baseAspect = baseImg.width / baseImg.height;
+        
+        // We draw based on the base image's "logical" height * scale
+        const drawH = baseImg.height * r.scale;
+        const drawW = drawH * aspect; // Keep current frame's aspect ratio
 
         ctx.drawImage(img, r.x - drawW/2, r.y - drawH/2, drawW, drawH);
         ctx.restore();
