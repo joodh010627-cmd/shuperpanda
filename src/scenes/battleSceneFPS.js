@@ -48,7 +48,7 @@ export class BattleSceneFPS {
     const isWaveCleared = (activeMinis.length === 0);
 
     // Wave logic
-    if (isWaveCleared) {
+    if (isWaveCleared && this.boss.hp > 0 && this.boss.state !== 'die') {
       if (this.waveTimer === 0) {
         this.waveTimer = 300; // 5 seconds wait
       } else {
@@ -174,7 +174,7 @@ export class BattleSceneFPS {
     renderables.sort((a,b) => b.scale - a.scale);
 
     for (let e of renderables) {
-      if (e.type === 'boss' && !isWaveCleared) continue; // Boss is invulnerable while Minis exist
+      if (e.type === 'boss' && (!isWaveCleared || e.state === 'die')) continue; // Boss is invulnerable while Minis exist
 
       const baseImg = assets.get(e.type === 'boss' ? 'image_21' : 'image_31');
       if (!baseImg) continue;
@@ -182,10 +182,12 @@ export class BattleSceneFPS {
       const drawW = baseImg.width * e.scale;
       const drawH = baseImg.height * e.scale;
       
+      // Hitbox based on bottom alignment
+      const baselineY = e.y + (baseImg.height * e.scale) / 2;
       const left = e.x - drawW/2;
       const right = e.x + drawW/2;
-      const top = e.y - drawH/2;
-      const bottom = e.y + drawH/2;
+      const top = baselineY - drawH;
+      const bottom = baselineY;
 
       if (mx >= left && mx <= right && my >= top && my <= bottom) {
         hitEnemy = e;
@@ -273,15 +275,14 @@ export class BattleSceneFPS {
           if (r.stateTimer > 30 && Math.floor(r.stateTimer / 5) % 2 === 0) ctx.globalAlpha = 0;
         }
 
-        // Use base image for consistent sizing while maintaining entity-specific aspect ratio
+        // Draw with bottom alignment based on the idle image's bottom coordinate
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
-        const aspect = img.width / img.height;
+        const baselineY = r.y + (baseImg.height * r.scale) / 2;
         
-        // We draw based on the base image's "logical" height * scale
-        const drawH = baseImg.height * r.scale;
-        const drawW = drawH * aspect; // Keep current frame's aspect ratio
+        const drawW = img.width * r.scale;
+        const drawH = img.height * r.scale; 
 
-        ctx.drawImage(img, r.x - drawW/2, r.y - drawH/2, drawW, drawH);
+        ctx.drawImage(img, r.x - drawW/2, baselineY - drawH, drawW, drawH);
         ctx.restore();
       }
     });
