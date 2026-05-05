@@ -40,6 +40,22 @@ export class ControlsSceneFPS {
     ctx.fillStyle = '#94a3b8';
     ctx.fillText('커피 더 헛의 습격을 막아내세요!', CANVAS_W / 2, 100);
 
+    ctx.font = '20px "Press Start 2P"';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('- 조작 방법 -', CANVAS_W / 2, CANVAS_H / 2 - 120);
+    
+    ctx.font = '16px "Press Start 2P"';
+    ctx.fillText('마우스 이동: 조준선(크로스헤어) 이동', CANVAS_W / 2, CANVAS_H / 2 - 60);
+    ctx.fillText('마우스 좌클릭 또는 Z키: 레이저 사격', CANVAS_W / 2, CANVAS_H / 2 - 20);
+    
+    ctx.fillStyle = '#ff5555';
+    ctx.fillText('주의: 보스는 미니 몹이 모두 제거된', CANVAS_W / 2, CANVAS_H / 2 + 40);
+    ctx.fillText('상태(VULNERABLE)에서만 타격 가능합니다!', CANVAS_W / 2, CANVAS_H / 2 + 70);
+    
+    ctx.fillStyle = '#aaa';
+    ctx.font = '14px "Press Start 2P"';
+    ctx.fillText('Press SPACE or CLICK to Start', CANVAS_W / 2, CANVAS_H - 100);
+
     // Panda arm demo
     const armImg = assets.get('image_41');
     if (armImg) {

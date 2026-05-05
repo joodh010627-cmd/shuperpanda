@@ -15,7 +15,7 @@ export class BattleSceneFPS {
     this.wave = 0;
     this.waveTimer = 0; 
     this.boss = { 
-      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 70, type: 'boss', hp: 300, active: true, scale: 0.25,
+      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 50, type: 'boss', hp: 300, active: true, scale: 0.225,
       state: 'idle', stateTimer: 0
     };
     this.enemies = [this.boss];
@@ -264,7 +264,7 @@ export class BattleSceneFPS {
           case 'move': imgKey = (Math.floor(this.frame / 10) % 2 === 0) ? 'image_32' : 'image_33'; break;
           case 'attack': imgKey = 'image_34'; break;
           case 'hit': imgKey = (r.hitFlip % 2 === 0) ? 'image_35' : 'image_36'; break;
-          case 'die': imgKey = 'image_37'; break;
+          case 'die': imgKey = (r.hitFlip % 2 === 0) ? 'image_35' : 'image_36'; break; // Use hit frame for dying
         }
       }
       
@@ -313,17 +313,20 @@ export class BattleSceneFPS {
     ctx.moveTo(cx, cy - 15); ctx.lineTo(cx, cy + 15); ctx.stroke();
 
     // HUD
+    ctx.textAlign = 'left';
     ctx.fillStyle = '#fff'; ctx.font = '20px "Press Start 2P"';
     ctx.fillText(`HP: ${Math.ceil(this.player.hp)}`, 20, CANVAS_H - 20);
     
     const activeMinis = this.enemies.filter(e => e.type === 'mini' && e.active && e.state !== 'die');
     if (this.boss.active) { 
+      ctx.textAlign = 'right';
       ctx.fillStyle = activeMinis.length === 0 ? '#0f0' : '#f00'; 
-      ctx.fillText(activeMinis.length === 0 ? `BOSS VULNERABLE: ${Math.ceil(this.boss.hp)}` : `BOSS IMMUNE`, CANVAS_W - 350, 40); 
+      ctx.fillText(activeMinis.length === 0 ? `BOSS VULNERABLE: ${Math.ceil(this.boss.hp)}` : `BOSS IMMUNE`, CANVAS_W - 20, 40); 
     }
     
-    if (this.player.hp <= 0) { ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#f00'; ctx.textAlign = 'center'; ctx.fillText('GAME OVER', CANVAS_W/2, CANVAS_H/2); }
-    if (this.winTimer > 0) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#fbbf24'; ctx.textAlign = 'center'; ctx.fillText('STAGE 2 CLEAR!', CANVAS_W/2, CANVAS_H/2); }
+    ctx.textAlign = 'center';
+    if (this.player.hp <= 0) { ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#f00'; ctx.fillText('GAME OVER', CANVAS_W/2, CANVAS_H/2); }
+    if (this.winTimer > 0) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#fbbf24'; ctx.fillText('STAGE 2 CLEAR!', CANVAS_W/2, CANVAS_H/2); }
     
     ctx.restore();
   }
