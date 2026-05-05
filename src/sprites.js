@@ -76,6 +76,20 @@ function extractFrames(sheet) {
 
   const frames = [];
   for (const r of rowRegions) {
+    const addFrame = (xPos, yPos, w, h) => {
+      // Estimate if this blob contains multiple frames by checking its width
+      // A typical character frame should not exceed 1/3.5 of the total sheet width
+      const expectedCols = Math.round(w / (sheet.width / 3.5));
+      if (expectedCols >= 2) {
+        const splitW = Math.floor(w / expectedCols);
+        for (let i = 0; i < expectedCols; i++) {
+          frames.push({ x: xPos + i * splitW, y: yPos, w: splitW, h: h });
+        }
+      } else {
+        frames.push({ x: xPos, y: yPos, w: w, h: h });
+      }
+    };
+
     let inCol = false;
     let colStart = 0;
     let colEmptyCount = 0;
@@ -91,11 +105,11 @@ function extractFrames(sheet) {
         colEmptyCount++;
         if (inCol && colEmptyCount > 10) {
           inCol = false;
-          frames.push({ x: colStart, y: r.y, w: x - colStart - 10, h: r.h });
+          addFrame(colStart, r.y, x - colStart - 10, r.h);
         }
       }
     }
-    if (inCol) frames.push({ x: colStart, y: r.y, w: sheet.width - colStart, h: r.h });
+    if (inCol) addFrame(colStart, r.y, sheet.width - colStart, r.h);
   }
 
   sheetFramesCache[sheet.src] = frames;

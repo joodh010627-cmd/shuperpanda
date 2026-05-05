@@ -258,7 +258,12 @@ export class BattleScene {
   _updateBossAI() {
     const b = this.boss, p = this.player;
     if (b.hitstun > 0 || b.state === 'ko') return;
-    if (['clap','tongue','stomp'].includes(b.state)) return;
+    if (['clap','tongue','stomp'].includes(b.state)) {
+      if (b.state === 'stomp' && !b.isGrounded) {
+        b.x += b.facing * 4; // Smooth forward movement in the air
+      }
+      return;
+    }
 
     b.aiTimer--;
     if (b.attackCooldown > 0) b.attackCooldown--;
@@ -276,8 +281,10 @@ export class BattleScene {
         b.state = attack; b.stateTimer = 0; b.vx = 0; b.hasHitThisAttack = false;
         if (attack === 'clap') this.game.sound.clap();
         if (attack === 'tongue') this.game.sound.tongue();
-        if (attack === 'stomp') { b.vy = -14; b.isGrounded = false; this.game.sound.stomp();
-          b.x += b.facing * (dist * 0.4); // jump towards player
+        if (attack === 'stomp') { 
+          b.vy = -14; 
+          b.isGrounded = false; 
+          this.game.sound.stomp();
         }
         return;
       }

@@ -46,12 +46,12 @@ export class ControlsScene {
     // Controls layout (spaced out for larger text)
     const controls = [
       { key: '← →', desc: '이동', y: 120 },
-      { key: '←←/→→', desc: '대시 (더블 탭)', y: 170 },
+      { key: '←←/→→', desc: '대시', y: 170 },
       { key: '↑', desc: '점프', y: 220 },
-      { key: '↓', desc: '방어 (데미지 감소)', y: 270 },
-      { key: 'Z', desc: '펀치 (빠른 공격)', y: 320 },
-      { key: 'X', desc: '발차기 (강공격)', y: 370 },
-      { key: 'C', desc: '레이저 (게이지 꽉 찰 때)', y: 420 },
+      { key: '↓', desc: '방어', y: 270 },
+      { key: 'Z', desc: '펀치', y: 320 },
+      { key: 'X', desc: '발차기', y: 370 },
+      { key: 'C', desc: '레이저 (피격 시 레이저 게이지가 충전됩니다)', y: 420 },
     ];
 
     ctx.textAlign = 'left';
@@ -68,16 +68,9 @@ export class ControlsScene {
 
       // Description
       ctx.fillStyle = '#e2e8f0';
-      ctx.font = '16px "Press Start 2P"';
+      ctx.font = '14px "Press Start 2P"'; // slightly smaller to fit the long C key text
       ctx.fillText(c.desc, 480, c.y + 4);
     });
-
-    // Gauge info
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = '14px "Press Start 2P"';
-    ctx.textAlign = 'center';
-    ctx.fillText('💡 피격 시 게이지가 충전됩니다', CANVAS_W / 2 + 60, 480);
-    ctx.fillText('게이지가 꽉 차면 C키로 필살기!', CANVAS_W / 2 + 60, 510);
 
     // Continue
     if (Math.floor(this.frame / 25) % 2 === 0) {
