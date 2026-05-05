@@ -9,7 +9,7 @@ const ASSET_PATHS = {
 };
 
 for (let i = 1; i <= 20; i++) {
-  ASSET_PATHS[`image_${i}`] = `./assets/image ${i}.png`;
+  ASSET_PATHS[`image_${i}`] = `./assets/image_${i}.png`;
 }
 
 class AssetLoader {
