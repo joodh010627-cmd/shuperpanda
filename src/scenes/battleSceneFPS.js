@@ -233,6 +233,7 @@ export class BattleSceneFPS {
       hitEnemy.hp -= (hitEnemy.type === 'boss' ? 20 : 1); 
       hitEnemy.state = 'hit';
       hitEnemy.stateTimer = 0;
+      hitEnemy.hitFlip = (hitEnemy.hitFlip || 0) + 1; // Increment hit flip per event
       this._spawnParticles(0, 0, 10);
       if (hitEnemy.hp <= 0) {
         hitEnemy.state = 'die';
@@ -328,13 +329,13 @@ export class BattleSceneFPS {
       const scale = fov / rotZ;
       const scaleFactor = 0.015;
       
-      let imgKey = 'image_21';
+      let imgKey = (r.type === 'boss' ? 'image_21' : 'image_31');
       if (r.type === 'boss') {
         switch(r.state) {
           case 'idle': imgKey = 'image_21'; break;
           case 'move': imgKey = (Math.floor(this.frame / 15) % 2 === 0) ? 'image_22' : 'image_23'; break;
           case 'spawn': imgKey = 'image_24'; break;
-          case 'hit': imgKey = (Math.floor(this.frame / 3) % 2 === 0) ? 'image_25' : 'image_26'; break;
+          case 'hit': imgKey = (r.hitFlip % 2 === 0) ? 'image_25' : 'image_26'; break;
           case 'die': imgKey = (r.stateTimer < 60) ? 'image_27' : 'image_28'; break;
         }
       } else {
@@ -342,7 +343,7 @@ export class BattleSceneFPS {
           case 'idle': imgKey = 'image_31'; break;
           case 'move': imgKey = (Math.floor(this.frame / 10) % 2 === 0) ? 'image_32' : 'image_33'; break;
           case 'attack': imgKey = 'image_34'; break;
-          case 'hit': imgKey = (Math.floor(this.frame / 5) % 2 === 0) ? 'image_35' : 'image_36'; break;
+          case 'hit': imgKey = (r.hitFlip % 2 === 0) ? 'image_35' : 'image_36'; break;
           case 'die': imgKey = 'image_37'; break;
         }
       }
@@ -354,8 +355,12 @@ export class BattleSceneFPS {
         if (r.type === 'mini' && r.state === 'die') {
           if (r.stateTimer > 30 && Math.floor(r.stateTimer / 5) % 2 === 0) ctx.globalAlpha = 0;
         }
-        const drawW = img.width * scale * scaleFactor * r.scale;
-        const drawH = img.height * scale * scaleFactor * r.scale;
+
+        // Use base idle image dimensions for unified size
+        const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
+        const drawW = (baseImg || img).width * scale * scaleFactor * r.scale;
+        const drawH = (baseImg || img).height * scale * scaleFactor * r.scale;
+
         const floorY = CANVAS_H/2 + 15 * scale; 
         ctx.drawImage(img, screenX - drawW/2, floorY - drawH, drawW, drawH);
         ctx.restore();
