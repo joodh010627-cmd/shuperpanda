@@ -277,7 +277,9 @@ export class BattleSceneFPS {
 
         // Draw with bottom alignment based on the idle image's bottom coordinate
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
-        const baselineY = r.y + (baseImg.height * r.scale) / 2;
+        // Add a small offset to the baseline for the boss to ensure it's not floating
+        const bossFloorOffset = r.type === 'boss' ? 20 * r.scale : 0;
+        const baselineY = r.y + (baseImg.height * r.scale) / 2 + bossFloorOffset;
         
         const drawW = img.width * r.scale;
         const drawH = img.height * r.scale; 
