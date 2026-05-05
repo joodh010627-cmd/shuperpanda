@@ -12,15 +12,11 @@ export class BattleSceneFPS {
       hitTimer: 0
     };
     
-    this.enemies = [
-      { id: 1, x: -3, z: 15, type: 'mini', hp: 20, active: true, scale: 0.8 },
-      { id: 2, x: 3, z: 16, type: 'mini', hp: 20, active: true, scale: 0.8 },
-      { id: 3, x: -5, z: 20, type: 'mini', hp: 20, active: true, scale: 0.8 },
-      { id: 4, x: 5, z: 22, type: 'mini', hp: 20, active: true, scale: 0.8 },
-      { id: 5, x: 0, z: 18, type: 'boss', hp: 300, active: true, scale: 2.5, attackTimer: 100 },
-    ];
+    this.wave = 0;
+    this.boss = { id: 'boss', x: 0, z: 25, type: 'boss', hp: 300, active: true, scale: 2.0 };
+    this.enemies = [this.boss];
+    this._spawnWave();
 
-    this.projectiles = [];
     this.particles = [];
     this.laser = 0;
 
@@ -43,9 +39,14 @@ export class BattleSceneFPS {
       return;
     }
 
+    // Spawn logic
+    const activeMinis = this.enemies.filter(e => e.type === 'mini' && e.active).length;
+    if (activeMinis === 0 && this.wave === 1) {
+      this._spawnWave();
+    }
+
     // Victory check
-    const boss = this.enemies.find(e => e.type === 'boss');
-    if (boss && !boss.active && this.enemies.filter(e=>e.active).length === 0) {
+    if (!this.boss.active && activeMinis === 0 && this.wave === 2) {
       this.winTimer++;
       if (this.winTimer > 120) {
         document.exitPointerLock?.();
@@ -56,29 +57,29 @@ export class BattleSceneFPS {
 
     // Player Movement (WASD + Mouse)
     const rotSpeed = 0.002;
-    const moveSpeed = 0.1;
+    const moveSpeed = 0.15;
 
     // Rotation via Mouse
     const mouseDeltaX = input.getMouseDeltaX();
     this.player.yaw += mouseDeltaX * rotSpeed;
-    
-    // Limit yaw so player doesn't look completely away from the corridor
-    this.player.yaw = Math.max(-0.8, Math.min(0.8, this.player.yaw));
+    this.player.yaw = Math.max(-1.0, Math.min(1.0, this.player.yaw)); // Wider look angle
 
-    // Movement via WASD
-    let moveZ = 0;
-    let moveX = 0;
+    // Movement via WASD (relative to yaw)
+    let forward = 0;
+    let right = 0;
 
-    if (input.isDown('KeyW') || input.isDown('ArrowUp')) moveZ += moveSpeed;
-    if (input.isDown('KeyS') || input.isDown('ArrowDown')) moveZ -= moveSpeed;
-    if (input.isDown('KeyA')) moveX -= moveSpeed;
-    if (input.isDown('KeyD')) moveX += moveSpeed;
+    if (input.isDown('KeyW') || input.isDown('ArrowUp')) forward += moveSpeed;
+    if (input.isDown('KeyS') || input.isDown('ArrowDown')) forward -= moveSpeed;
+    if (input.isDown('KeyA')) right -= moveSpeed;
+    if (input.isDown('KeyD')) right += moveSpeed;
 
-    // Simple collision bounds for corridor
-    this.player.x += moveX;
-    this.player.z += moveZ;
-    this.player.x = Math.max(-4, Math.min(4, this.player.x));
-    this.player.z = Math.max(0, Math.min(25, this.player.z));
+    const dx = right * Math.cos(-this.player.yaw) + forward * Math.sin(-this.player.yaw);
+    const dz = -right * Math.sin(-this.player.yaw) + forward * Math.cos(-this.player.yaw);
+
+    this.player.x += dx;
+    this.player.z += dz;
+    this.player.x = Math.max(-6, Math.min(6, this.player.x));
+    this.player.z = Math.max(0, Math.min(40, this.player.z));
 
     // Shooting (Left Click or Z)
     if (this.player.weaponTimer > 0) this.player.weaponTimer--;
@@ -93,22 +94,7 @@ export class BattleSceneFPS {
       this._checkHit();
     }
 
-    // Projectiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      let p = this.projectiles[i];
-      p.z -= 0.3;
-      if (p.z <= this.player.z + 1) {
-        // Hit player
-        if (Math.abs(p.x - this.player.x) < 2) {
-          this.player.hp -= 10;
-          this.player.hitTimer = 10;
-          this.shake = 10;
-          this.game.sound.hit();
-          this._spawnParticles(0, 0, 1); // Hit center
-        }
-        this.projectiles.splice(i, 1);
-      }
-    }
+    // No projectiles in this version
 
     // Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -126,12 +112,13 @@ export class BattleSceneFPS {
       const dist = Math.sqrt(dx*dx + dz*dz);
       
       if (e.type === 'mini') {
-        if (dist < 2) {
+        if (dist < 1.5) {
           // Melee attack
           if (this.frame % 30 === 0) {
             this.player.hp -= 5;
             this.player.hitTimer = 5;
             this.shake = 5;
+            this.game.sound.hit();
           }
         } else {
           // Move towards player
@@ -139,22 +126,29 @@ export class BattleSceneFPS {
           e.z += (dz / dist) * 0.05;
         }
       } else if (e.type === 'boss') {
-        // Keep distance around 10
-        if (dist < 8) e.z += 0.08;
-        else if (dist > 12) e.z -= 0.08;
-
-        e.x += (dx / dist) * 0.01;
-
-        // Attack
-        e.attackTimer--;
-        if (e.attackTimer <= 0) {
-          e.attackTimer = 80 + Math.random() * 40;
-          this.projectiles.push({ x: e.x, y: -1, z: e.z });
-          // Sound effect for boss throw (reuse tongue or hit)
-          this.game.sound.tongue();
-        }
+        // Boss moves side to side slightly
+        e.x = Math.sin(this.frame * 0.02) * 2;
+        // Keep distance around 15-20
+        if (dist < 15) e.z += 0.05;
+        else if (dist > 20) e.z -= 0.05;
       }
     });
+  }
+
+  _spawnWave() {
+    this.wave++;
+    if (this.wave > 2) return;
+    for (let i = 0; i < 5; i++) {
+      this.enemies.push({
+        id: `mini_${this.wave}_${i}`,
+        x: (Math.random() - 0.5) * 8, 
+        z: this.player.z + 10 + Math.random() * 5,
+        type: 'mini',
+        hp: 1, // One hit kill
+        active: true,
+        scale: 0.8
+      });
+    }
   }
 
   _checkHit() {
@@ -289,10 +283,9 @@ export class BattleSceneFPS {
     }
     ctx.restore();
 
-    // Sort renderables (enemies + projectiles) by depth (z)
+    // Sort renderables (enemies) by depth (z)
     let renderables = [];
     this.enemies.filter(e => e.active).forEach(e => renderables.push({ ...e, isObj: 'enemy' }));
-    this.projectiles.forEach(p => renderables.push({ ...p, isObj: 'proj' }));
 
     renderables.forEach(r => {
       r.relX = r.x - this.player.x;
@@ -339,19 +332,6 @@ export class BattleSceneFPS {
           ctx.drawImage(img, screenX - drawW/2, drawY, drawW, drawH);
           ctx.restore();
         }
-      } else if (r.isObj === 'proj') {
-        const scale = (fov / rotZ);
-        const size = 20 * scale;
-        const cameraHeight = 15;
-        const floorY = CANVAS_H/2 + cameraHeight * scale;
-        // Projectiles fly at a reasonable height
-        ctx.fillStyle = '#4a2f1d';
-        ctx.beginPath();
-        ctx.arc(screenX, floorY - 10*scale, size/2, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#2d1b10';
-        ctx.lineWidth = 2;
-        ctx.stroke();
       }
     });
 
@@ -365,11 +345,11 @@ export class BattleSceneFPS {
     const armKey = this.player.weaponTimer > 0 ? 'image_42' : 'image_41';
     const weaponImg = assets.get(armKey);
     if (weaponImg) {
-      const wWidth = 600;
+      const wWidth = 400; // Smaller size for the tumbler
       const wHeight = weaponImg.height * (wWidth / weaponImg.width);
       // Centered at bottom
       const wx = (CANVAS_W - wWidth) / 2;
-      const wy = CANVAS_H - wHeight + 50 + (this.player.weaponTimer > 0 ? 30 : 0);
+      const wy = CANVAS_H - wHeight + 10 + (this.player.weaponTimer > 0 ? 30 : 0);
       
       ctx.drawImage(weaponImg, wx, wy, wWidth, wHeight);
     }

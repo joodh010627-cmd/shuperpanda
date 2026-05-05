@@ -64,10 +64,14 @@ class AssetLoader {
     ctx.drawImage(img, 0, 0);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    // Remove white-ish background (thresholding)
+    
+    // Sample the top-left pixel to use as the background color key
+    const tr = data[0], tg = data[1], tb = data[2];
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i], g = data[i+1], b = data[i+2];
-      if (r > 240 && g > 240 && b > 240) {
+      // Tolerance of 10 to catch compression artifacts
+      if (Math.abs(r - tr) < 10 && Math.abs(g - tg) < 10 && Math.abs(b - tb) < 10) {
         data[i+3] = 0; // Set alpha to 0
       }
     }
