@@ -204,7 +204,7 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
   }
 
   const sheet = assets.get('panda_sprites');
-  const baseCellH = sheet ? sheet.height / PANDA_ROWS : 341;
+  const baseCellH = (sheet && sheet.height > 0) ? sheet.height / PANDA_ROWS : 341;
   const targetDrawH = 210; // fixed display height scaling reference
   const scale = targetDrawH / baseCellH;
 
@@ -259,7 +259,7 @@ export function drawFrog(ctx, x, y, facing, state, frame) {
   }
 
   const sheet = assets.get('frog_sprites');
-  const baseCellH = sheet ? sheet.height / FROG_ROWS : 341;
+  const baseCellH = (sheet && sheet.height > 0) ? sheet.height / FROG_ROWS : 341;
   const targetDrawH = 270; // fixed display height scaling reference
   const scale = targetDrawH / baseCellH;
 
