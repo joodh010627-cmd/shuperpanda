@@ -24,6 +24,13 @@ const CUTSCENES = {
       { speaker: '커피 더 헛', text: '아까 텀블러 뚜껑\n안 열어서 건내줬지?\n복수하러 왔다!!' },
       { speaker: '슈퍼 판다', text: '네? 죄송해요,\n다음에는 잘 드릴게요\nㅎㅎ;;' },
     ],
+    next: 'animation_stage'
+  },
+  stage2b: {
+    image: 'cutscene_stage2b',
+    dialogs: [
+      { speaker: '시스템', text: 'Stage 2\n커피 더 헛의 습격!' },
+    ],
     next: 'title'
   }
 };

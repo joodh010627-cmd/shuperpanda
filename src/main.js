@@ -20,6 +20,12 @@ class Game {
     this.scene = null;
     this.loading = true;
 
+    // Transition state
+    this.fadeAlpha = 0;
+    this.transitionState = 'none'; // 'none', 'fadeOut', 'fadeIn'
+    this.nextSceneName = null;
+    this.transitionSpeed = 0.05;
+
     // Show loading screen while assets load
     this._showLoading();
     assets.loadAll().then(() => {
@@ -62,6 +68,14 @@ class Game {
   }
 
   switchScene(name) {
+    if (this.transitionState !== 'none') return; // Prevent multiple switches
+    
+    this.nextSceneName = name;
+    this.transitionState = 'fadeOut';
+    this.fadeAlpha = 0;
+  }
+
+  _performSceneSwitch(name) {
     switch (name) {
       case 'title':
         this.scene = new TitleScene(this);
@@ -71,6 +85,10 @@ class Game {
         break;
       case 'cutscene_stage2':
         this.scene = new CutsceneScene(this, 'stage2');
+        break;
+      case 'animation_stage':
+        // For now, let's show cutscene_stage2b as the animation stage
+        this.scene = new CutsceneScene(this, 'stage2b');
         break;
       case 'controls':
         this.scene = new ControlsScene(this);
@@ -84,9 +102,38 @@ class Game {
   }
 
   _loop() {
-    this.scene.update(this.input);
+    // Update
+    if (this.transitionState === 'fadeOut') {
+      this.fadeAlpha += this.transitionSpeed;
+      if (this.fadeAlpha >= 1) {
+        this.fadeAlpha = 1;
+        this._performSceneSwitch(this.nextSceneName);
+        this.transitionState = 'fadeIn';
+      }
+    } else if (this.transitionState === 'fadeIn') {
+      this.fadeAlpha -= this.transitionSpeed;
+      if (this.fadeAlpha <= 0) {
+        this.fadeAlpha = 0;
+        this.transitionState = 'none';
+      }
+    }
+
+    if (this.scene) {
+      this.scene.update(this.input);
+    }
+
+    // Render
     this.ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    this.scene.render(this.ctx);
+    if (this.scene) {
+      this.scene.render(this.ctx);
+    }
+
+    // Draw fade overlay
+    if (this.fadeAlpha > 0) {
+      this.ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeAlpha})`;
+      this.ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
+
     this.input.endFrame();
     requestAnimationFrame(() => this._loop());
   }
