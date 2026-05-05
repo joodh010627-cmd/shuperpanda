@@ -60,34 +60,95 @@ function extractFrames(sheet, cols, rows) {
 
     const cellW = width / cols;
     const cellH = height / rows;
-    const frames = [];
+    
+    const visited = new Uint8Array(width * height);
+    let blobs = [];
 
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const startX = Math.floor(c * cellW);
-        const startY = Math.floor(r * cellH);
-        const endX = Math.floor((c + 1) * cellW);
-        const endY = Math.floor((r + 1) * cellH);
+    // 1. Find all continuous pixel blobs
+    for (let y = 0; y < height; y += 2) {
+      for (let x = 0; x < width; x += 2) {
+        const idx = y * width + x;
+        if (!visited[idx] && !isGreen(x, y)) {
+          let minX = x, maxX = x, minY = y, maxY = y;
+          const stack = [x, y];
+          visited[idx] = 1;
 
-        let minX = endX, maxX = startX, minY = endY, maxY = startY;
-        let hasPixels = false;
+          while (stack.length > 0) {
+            const cy = stack.pop();
+            const cx = stack.pop();
 
-        for (let y = startY; y < endY; y++) {
-          for (let x = startX; x < endX; x++) {
-            if (!isGreen(x, y)) {
-              hasPixels = true;
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-              if (y < minY) minY = y;
-              if (y > maxY) maxY = y;
+            if (cx < minX) minX = cx;
+            if (cx > maxX) maxX = cx;
+            if (cy < minY) minY = cy;
+            if (cy > maxY) maxY = cy;
+
+            const neighbors = [
+              cx-1, cy, cx+1, cy, cx, cy-1, cx, cy+1,
+              cx-1, cy-1, cx+1, cy-1, cx-1, cy+1, cx+1, cy+1
+            ];
+            for (let i = 0; i < 16; i += 2) {
+              const nx = neighbors[i];
+              const ny = neighbors[i+1];
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                const nidx = ny * width + nx;
+                if (!visited[nidx] && !isGreen(nx, ny)) {
+                  visited[nidx] = 1;
+                  stack.push(nx, ny);
+                }
+              }
             }
           }
-        }
 
-        if (hasPixels) {
-          frames.push({ x: minX, y: minY, w: Math.max(1, maxX - minX + 1), h: Math.max(1, maxY - minY + 1) });
+          if (maxX - minX > 5 && maxY - minY > 5) {
+            blobs.push({ minX, minY, maxX, maxY });
+          }
+        }
+      }
+    }
+
+    // 2. Assign each blob to a grid cell based on its center point
+    const cellBounds = Array.from({ length: rows * cols }, () => null);
+    for (const blob of blobs) {
+      const centerX = (blob.minX + blob.maxX) / 2;
+      const centerY = (blob.minY + blob.maxY) / 2;
+      
+      let c = Math.floor(centerX / cellW);
+      let r = Math.floor(centerY / cellH);
+      
+      c = Math.max(0, Math.min(cols - 1, c));
+      r = Math.max(0, Math.min(rows - 1, r));
+      
+      const idx = r * cols + c;
+      if (!cellBounds[idx]) {
+        cellBounds[idx] = { ...blob };
+      } else {
+        cellBounds[idx].minX = Math.min(cellBounds[idx].minX, blob.minX);
+        cellBounds[idx].maxX = Math.max(cellBounds[idx].maxX, blob.maxX);
+        cellBounds[idx].minY = Math.min(cellBounds[idx].minY, blob.minY);
+        cellBounds[idx].maxY = Math.max(cellBounds[idx].maxY, blob.maxY);
+      }
+    }
+
+    // 3. Build exact frames mapping
+    const frames = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const idx = r * cols + c;
+        const b = cellBounds[idx];
+        if (b) {
+          frames.push({
+            x: b.minX,
+            y: b.minY,
+            w: Math.max(1, b.maxX - b.minX + 1),
+            h: Math.max(1, b.maxY - b.minY + 1)
+          });
         } else {
-          frames.push({ x: startX, y: startY, w: Math.max(1, Math.floor(cellW)), h: Math.max(1, Math.floor(cellH)) });
+          frames.push({
+            x: Math.floor(c * cellW),
+            y: Math.floor(r * cellH),
+            w: Math.max(1, Math.floor(cellW)),
+            h: Math.max(1, Math.floor(cellH))
+          });
         }
       }
     }
