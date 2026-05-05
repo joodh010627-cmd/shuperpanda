@@ -15,8 +15,8 @@ export class BattleSceneFPS {
     this.wave = 0;
     this.waveTimer = 0; 
     this.boss = { 
-      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 50, type: 'boss', hp: 300, active: true, scale: 0.225,
-      state: 'idle', stateTimer: 0
+      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 20, type: 'boss', hp: 300, active: true, scale: 0.225,
+      state: 'idle', stateTimer: 0, spawnTriggered: false
     };
     this.enemies = [this.boss];
     this._spawnWave();
@@ -54,9 +54,15 @@ export class BattleSceneFPS {
       } else {
         this.waveTimer--;
         if (this.waveTimer <= 0) {
-          this._spawnWave();
+          this._startWaveSpawn();
         }
       }
+    }
+
+    // Delayed spawn for minis (0.2s = 12 frames after boss state change)
+    if (this.boss.state === 'spawn' && !this.boss.spawnTriggered && this.boss.stateTimer >= 12) {
+      this._doSpawnMinis();
+      this.boss.spawnTriggered = true;
     }
 
     // Victory check
@@ -136,29 +142,40 @@ export class BattleSceneFPS {
     });
   }
 
-  _spawnWave() {
+  _startWaveSpawn() {
     this.wave++;
     this.waveTimer = 0;
     this.boss.state = 'spawn';
     this.boss.stateTimer = 0;
+    this.boss.spawnTriggered = false;
+  }
+
+  _spawnWave() {
+    // Initial wave
+    this._startWaveSpawn();
+  }
+
+  _doSpawnMinis() {
+    const baseBoss = assets.get('image_21');
+    const bossBaselineY = this.boss.y + (baseBoss.height * this.boss.scale) / 2;
 
     for (let i = 0; i < 5; i++) {
       // Target scatter location
       const targetX = CANVAS_W/2 + (Math.random() - 0.5) * 600;
-      const targetY = CANVAS_H/2 + 50 + Math.random() * 150;
+      const targetY = CANVAS_H/2 + 70 + Math.random() * 130;
       
       const framesToReach = 180 + Math.random() * 120; // 3-5 seconds to reach player
       
       this.enemies.push({
         id: `mini_${this.wave}_${i}`,
         x: this.boss.x, 
-        y: this.boss.y,
+        y: bossBaselineY - 10, // Start slightly above boss baseline
         vx: (targetX - this.boss.x) / framesToReach,
-        vy: (targetY - this.boss.y) / framesToReach,
+        vy: (targetY - bossBaselineY) / framesToReach,
         scale: 0.02,
         vScale: (0.3 - 0.02) / framesToReach,
         type: 'mini',
-        hp: 2, 
+        hp: 1, 
         active: true,
         state: 'move',
         stateTimer: 0
@@ -277,8 +294,8 @@ export class BattleSceneFPS {
 
         // Draw with bottom alignment based on the idle image's bottom coordinate
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
-        // Add a small offset to the baseline for the boss to ensure it's not floating
-        const bossFloorOffset = r.type === 'boss' ? 20 * r.scale : 0;
+        // Increase floor offset for the boss to keep it grounded during death
+        const bossFloorOffset = r.type === 'boss' ? 40 * r.scale : 0;
         const baselineY = r.y + (baseImg.height * r.scale) / 2 + bossFloorOffset;
         
         const drawW = img.width * r.scale;

@@ -72,16 +72,11 @@ export class ControlsSceneFPS {
       ctx.fillText('Press SPACE or CLICK to Start', CANVAS_W / 2, CANVAS_H - 40);
     }
 
-    // Panda arm demo - repositioned to corner
-    const armImg = assets.get('image_41');
-    if (armImg) {
-      const s = 0.4;
-      const w = armImg.width * s;
-      const h = armImg.height * s;
-      ctx.save();
-      ctx.globalAlpha = 0.5;
-      ctx.drawImage(armImg, CANVAS_W - w + 50, CANVAS_H - h + 50, w, h);
-      ctx.restore();
+    // Start Prompt
+    if (Math.floor(this.frame / 30) % 2 === 0) {
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '14px "Press Start 2P"';
+      ctx.fillText('Press SPACE or CLICK to Start', CANVAS_W / 2, CANVAS_H - 40);
     }
   }
 }
