@@ -50,7 +50,7 @@ export class BattleSceneFPS {
     // Wave logic
     if (isWaveCleared && this.boss.hp > 0 && this.boss.state !== 'die') {
       if (this.waveTimer === 0) {
-        this.waveTimer = 300; // 5 seconds wait
+        this.waveTimer = 180; // 3 seconds wait
       } else {
         this.waveTimer--;
         if (this.waveTimer <= 0) {
