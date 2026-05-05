@@ -32,6 +32,8 @@ const FROG_STATE_MAP = {
 // Cache for processed (chroma-keyed) sprites
 const spriteCache = {};
 
+const sheetFramesCache = {};
+
 function extractFrames(sheet) {
   if (!sheet || !sheet.width || !sheet.height) return [];
 
