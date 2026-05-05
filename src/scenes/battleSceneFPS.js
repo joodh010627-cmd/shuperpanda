@@ -272,6 +272,21 @@ export class BattleSceneFPS {
     ctx.moveTo(-1000, vpY);
     ctx.lineTo(CANVAS_W+1000, vpY);
     ctx.stroke();
+
+    // Floor depth lines (moves with player Z)
+    const zOffset = this.player.z % 2; // Grid size of 2
+    for (let d = 0; d < 15; d += 2) {
+      const depth = d - zOffset;
+      if (depth <= 0.1) continue;
+      const scale = 200 / depth;
+      const fy = CANVAS_H/2 + 15 * scale;
+      if (fy > CANVAS_H/2 && fy < CANVAS_H) {
+        ctx.beginPath();
+        ctx.moveTo(-1000, fy);
+        ctx.lineTo(CANVAS_W+1000, fy);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
 
     // Sort renderables (enemies + projectiles) by depth (z)
@@ -329,10 +344,10 @@ export class BattleSceneFPS {
         const size = 20 * scale;
         const cameraHeight = 15;
         const floorY = CANVAS_H/2 + cameraHeight * scale;
-        // Projectiles fly a bit higher
+        // Projectiles fly at a reasonable height
         ctx.fillStyle = '#4a2f1d';
         ctx.beginPath();
-        ctx.arc(screenX, floorY - 30*scale, size/2, 0, Math.PI*2);
+        ctx.arc(screenX, floorY - 10*scale, size/2, 0, Math.PI*2);
         ctx.fill();
         ctx.strokeStyle = '#2d1b10';
         ctx.lineWidth = 2;
