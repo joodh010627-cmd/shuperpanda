@@ -15,7 +15,7 @@ export class BattleSceneFPS {
     this.wave = 0;
     this.waveTimer = 0; 
     this.boss = { 
-      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 50, type: 'boss', hp: 300, active: true, scale: 0.5,
+      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 70, type: 'boss', hp: 300, active: true, scale: 0.25,
       state: 'idle', stateTimer: 0
     };
     this.enemies = [this.boss];
@@ -92,7 +92,7 @@ export class BattleSceneFPS {
       e.stateTimer = (e.stateTimer || 0) + 1;
 
       if (e.state === 'hit' && e.stateTimer > 6) {
-        e.state = (e.type === 'mini' && e.scale >= 0.6) ? 'attack' : 'idle';
+        e.state = (e.type === 'mini' && e.scale >= 0.3) ? 'attack' : 'idle';
       }
 
       if (e.type === 'mini') {
@@ -107,8 +107,8 @@ export class BattleSceneFPS {
           e.y += e.vy;
           e.scale += e.vScale;
           
-          if (e.scale >= 0.6) {
-            e.scale = 0.6;
+          if (e.scale >= 0.3) {
+            e.scale = 0.3;
             e.state = 'attack';
             e.stateTimer = 0;
           }
@@ -155,8 +155,8 @@ export class BattleSceneFPS {
         y: this.boss.y,
         vx: (targetX - this.boss.x) / framesToReach,
         vy: (targetY - this.boss.y) / framesToReach,
-        scale: 0.05,
-        vScale: (0.6 - 0.05) / framesToReach,
+        scale: 0.02,
+        vScale: (0.3 - 0.02) / framesToReach,
         type: 'mini',
         hp: 2, 
         active: true,
@@ -238,9 +238,13 @@ export class BattleSceneFPS {
       ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
     }
 
-    // Sort renderables by scale ascending (draw furthest first)
+    // Sort renderables: Boss always first (bottom layer), then minis by scale (further away drawn first)
     let renderables = this.enemies.filter(e => e.active);
-    renderables.sort((a,b) => a.scale - b.scale);
+    renderables.sort((a,b) => {
+      if (a.type === 'boss') return -1;
+      if (b.type === 'boss') return 1;
+      return a.scale - b.scale;
+    });
 
     renderables.forEach(r => {
       let imgKey = (r.type === 'boss' ? 'image_21' : 'image_31');
@@ -272,7 +276,6 @@ export class BattleSceneFPS {
         // Use base image for consistent sizing while maintaining entity-specific aspect ratio
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
         const aspect = img.width / img.height;
-        const baseAspect = baseImg.width / baseImg.height;
         
         // We draw based on the base image's "logical" height * scale
         const drawH = baseImg.height * r.scale;
