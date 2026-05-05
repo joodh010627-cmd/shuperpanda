@@ -24,6 +24,7 @@ class AssetLoader {
       if (this.total === 0) { resolve(); return; }
       for (const [key, path] of Object.entries(ASSET_PATHS)) {
         const img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = () => {
           this.images[key] = img;
           this.loaded++;
