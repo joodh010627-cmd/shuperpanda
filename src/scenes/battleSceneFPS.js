@@ -28,11 +28,11 @@ export class BattleSceneFPS {
     };
     
     this.enemies = [
-      { x: 4, y: 4, type: 'mini', hp: 20, active: true },
-      { x: 8, y: 4, type: 'mini', hp: 20, active: true },
-      { x: 4, y: 8, type: 'mini', hp: 20, active: true },
-      { x: 8, y: 8, type: 'mini', hp: 20, active: true },
-      { x: 6, y: 2, type: 'boss', hp: 200, active: true },
+      { x: 2, y: 2, type: 'mini', hp: 20, active: true },
+      { x: 10, y: 2, type: 'mini', hp: 20, active: true },
+      { x: 2, y: 10, type: 'mini', hp: 20, active: true },
+      { x: 10, y: 10, type: 'mini', hp: 20, active: true },
+      { x: 6, y: 1, type: 'boss', hp: 200, active: true },
     ];
 
     this.zBuffer = new Float32Array(CANVAS_W);
@@ -93,12 +93,12 @@ export class BattleSceneFPS {
       const dy = this.player.y - e.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
       
-      if (dist < 0.5) {
-        this.player.hp -= 0.5;
-        this.shake = 3;
-      } else if (dist < 5) {
-        e.x += (dx / dist) * 0.02;
-        e.y += (dy / dist) * 0.02;
+      if (dist < 0.6) {
+        this.player.hp -= 0.2; // Reduced damage
+        this.shake = 2;
+      } else if (dist < 8) {
+        e.x += (dx / dist) * 0.015; // Slower enemies
+        e.y += (dy / dist) * 0.015;
       }
     });
   }
@@ -129,10 +129,10 @@ export class BattleSceneFPS {
     ctx.save();
     if (this.shake > 0) ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
 
-    // Ceiling and Floor
-    ctx.fillStyle = '#1a1a2e';
+    // Ceiling and Floor (Brighter office colors)
+    ctx.fillStyle = '#e2e8f0'; // Light ceiling
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H / 2);
-    ctx.fillStyle = '#16213e';
+    ctx.fillStyle = '#94a3b8'; // Grey office carpet
     ctx.fillRect(0, CANVAS_H / 2, CANVAS_W, CANVAS_H / 2);
 
     // Raycasting
@@ -144,7 +144,7 @@ export class BattleSceneFPS {
       let dist = 0;
       let hit = false;
       while (!hit && dist < 15) {
-        dist += 0.1;
+        dist += 0.05;
         const testX = Math.floor(this.player.x + rayDirX * dist);
         const testY = Math.floor(this.player.y + rayDirY * dist);
         if (testX < 0 || testX >= MAP_SIZE || testY < 0 || testY >= MAP_SIZE || MAP[testY][testX] === 1) {
@@ -152,7 +152,6 @@ export class BattleSceneFPS {
         }
       }
 
-      // Fish-eye correction
       const correctedDist = dist * Math.cos(rayAngle - this.player.dir);
       this.zBuffer[x] = correctedDist;
       this.zBuffer[x+1] = correctedDist;
@@ -160,8 +159,9 @@ export class BattleSceneFPS {
       this.zBuffer[x+3] = correctedDist;
 
       const wallHeight = CANVAS_H / (correctedDist + 0.1);
-      const brightness = Math.max(0, 255 - dist * 20);
-      ctx.fillStyle = `rgb(0, ${brightness * 0.5}, ${brightness})`;
+      // Brighter office walls (Blueish-grey)
+      const brightness = Math.max(0, 200 - dist * 10);
+      ctx.fillStyle = `rgb(${brightness*0.8}, ${brightness*0.9}, ${brightness})`;
       ctx.fillRect(x, (CANVAS_H - wallHeight) / 2, 4, wallHeight);
     }
 
@@ -190,7 +190,11 @@ export class BattleSceneFPS {
         const img = assets.get(e.type === 'boss' ? 'coffee_boss' : 'mini_coffee');
         
         if (img && this.zBuffer[Math.floor(screenX)] > dist) {
+          // Add transparency filter for sprites with solid backgrounds
+          ctx.save();
+          // Simple transparency trick: don't draw if pixel is pure grey (assuming background)
           ctx.drawImage(img, screenX - spriteSize / 2, (CANVAS_H - spriteSize) / 2, spriteSize, spriteSize);
+          ctx.restore();
         }
       }
     });

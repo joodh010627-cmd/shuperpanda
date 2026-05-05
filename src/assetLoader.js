@@ -30,7 +30,11 @@ class AssetLoader {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-          this.images[key] = img;
+          if (['coffee_boss', 'mini_coffee', 'panda_arm'].includes(key)) {
+            this.images[key] = this._removeBackground(img);
+          } else {
+            this.images[key] = img;
+          }
           this.loaded++;
           if (this.loaded >= this.total) resolve();
         };
@@ -42,6 +46,25 @@ class AssetLoader {
         img.src = `${path}?v=${version}`;
       }
     });
+  }
+
+  _removeBackground(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    // Remove white-ish background (thresholding)
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      if (r > 240 && g > 240 && b > 240) {
+        data[i+3] = 0; // Set alpha to 0
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
   }
 
   get(key) {
