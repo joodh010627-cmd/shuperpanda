@@ -13,6 +13,7 @@ export class BattleSceneFPS {
     };
     
     this.wave = 0;
+    this.waveTimer = 0; // 5 seconds wait timer
     this.boss = { id: 'boss', x: 0, z: 25, type: 'boss', hp: 300, active: true, scale: 2.0 };
     this.enemies = [this.boss];
     this._spawnWave();
@@ -41,12 +42,19 @@ export class BattleSceneFPS {
 
     // Spawn logic
     const activeMinis = this.enemies.filter(e => e.type === 'mini' && e.active).length;
-    if (activeMinis === 0 && this.wave === 1) {
-      this._spawnWave();
+    if (activeMinis === 0) {
+      if (this.waveTimer === 0) {
+        this.waveTimer = 300; // Wait 5 seconds (300 frames)
+      } else {
+        this.waveTimer--;
+        if (this.waveTimer <= 0) {
+          this._spawnWave();
+        }
+      }
     }
 
-    // Victory check
-    if (!this.boss.active && activeMinis === 0 && this.wave === 2) {
+    // Victory check (only when Boss is dead)
+    if (!this.boss.active) {
       this.winTimer++;
       if (this.winTimer > 120) {
         document.exitPointerLock?.();
@@ -137,12 +145,12 @@ export class BattleSceneFPS {
 
   _spawnWave() {
     this.wave++;
-    if (this.wave > 2) return;
+    this.waveTimer = 0;
     for (let i = 0; i < 5; i++) {
       this.enemies.push({
         id: `mini_${this.wave}_${i}`,
         x: (Math.random() - 0.5) * 8, 
-        z: this.player.z + 10 + Math.random() * 5,
+        z: this.player.z + 15 + Math.random() * 10,
         type: 'mini',
         hp: 1, // One hit kill
         active: true,
@@ -227,49 +235,74 @@ export class BattleSceneFPS {
       ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
     }
 
-    // Draw background (Procedural Office Corridor)
-    // Pan background slightly based on yaw
+    // Draw background (Procedural Office Corridor - Wide Feel)
     const panX = -this.player.yaw * 300;
     
-    // Ceiling
+    // Ceiling (Fluorescent Lights base)
     ctx.fillStyle = '#e2e8f0';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H/2);
     
-    // Floor
-    ctx.fillStyle = '#94a3b8';
+    // Floor (Dark Carpet)
+    ctx.fillStyle = '#64748b';
     ctx.fillRect(0, CANVAS_H/2, CANVAS_W, CANVAS_H/2);
     
-    // Draw perspective walls to simulate corridor
     ctx.save();
     ctx.translate(panX, 0);
-    ctx.strokeStyle = '#64748b';
+    
+    // Draw Ceiling Lights
+    ctx.fillStyle = '#ffffff';
+    for (let i = -5; i <= 5; i++) {
+      ctx.fillRect(CANVAS_W/2 + i*200 - 50, 40, 100, 20);
+    }
+    
+    // Baseboards
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(-1000, CANVAS_H/2, CANVAS_W+2000, 10);
+    
+    ctx.strokeStyle = '#94a3b8';
     ctx.lineWidth = 3;
     
     // Perspective lines
     const vpX = CANVAS_W/2;
     const vpY = CANVAS_H/2;
     
-    for (let i = -3; i <= 3; i++) {
+    for (let i = -4; i <= 4; i++) {
+      // Wall lines
       ctx.beginPath();
-      ctx.moveTo(vpX + i*200, vpY);
-      ctx.lineTo(vpX + i*800, CANVAS_H);
+      ctx.moveTo(vpX + i*400, vpY);
+      ctx.lineTo(vpX + i*1600, 0);
       ctx.stroke();
       
+      // Floor lines (static grid)
       ctx.beginPath();
-      ctx.moveTo(vpX + i*200, vpY);
-      ctx.lineTo(vpX + i*800, 0);
+      ctx.moveTo(vpX + i*400, vpY);
+      ctx.lineTo(vpX + i*1600, CANVAS_H);
       ctx.stroke();
+      
+      // Simple door simulation on walls
+      if (Math.abs(i) > 0) {
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        const dir = Math.sign(i);
+        ctx.moveTo(vpX + i*400 - 30*dir, vpY + 10);
+        ctx.lineTo(vpX + i*400 - 30*dir, vpY - 40);
+        ctx.lineTo(vpX + i*400 - 80*dir, vpY - 60);
+        ctx.lineTo(vpX + i*400 - 80*dir, vpY + 20);
+        ctx.fill();
+      }
     }
     
     // Horizon line
+    ctx.strokeStyle = '#475569';
     ctx.beginPath();
     ctx.moveTo(-1000, vpY);
     ctx.lineTo(CANVAS_W+1000, vpY);
     ctx.stroke();
 
     // Floor depth lines (moves with player Z)
-    const zOffset = this.player.z % 2; // Grid size of 2
-    for (let d = 0; d < 15; d += 2) {
+    const zOffset = this.player.z % 2; 
+    ctx.strokeStyle = '#475569'; // Darker carpet line
+    for (let d = 0; d < 20; d += 2) {
       const depth = d - zOffset;
       if (depth <= 0.1) continue;
       const scale = 200 / depth;
@@ -310,11 +343,11 @@ export class BattleSceneFPS {
       if (r.isObj === 'enemy') {
         let imgKey;
         if (r.type === 'boss') {
-          const frameIndex = 21 + Math.floor(this.frame / 10) % 8;
-          imgKey = `image_${frameIndex}`;
+          // Fallback to static frame until user specifies animation mapping
+          imgKey = 'image_21';
         } else {
-          const frameIndex = 31 + Math.floor(this.frame / 8) % 7;
-          imgKey = `image_${frameIndex}`;
+          // Fallback to static frame
+          imgKey = 'image_31';
         }
         const img = assets.get(imgKey);
         

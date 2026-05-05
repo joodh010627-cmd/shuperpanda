@@ -65,13 +65,17 @@ class AssetLoader {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // Sample the top-left pixel to use as the background color key
-    const tr = data[0], tg = data[1], tb = data[2];
-
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i], g = data[i+1], b = data[i+2];
-      // Tolerance of 10 to catch compression artifacts
-      if (Math.abs(r - tr) < 10 && Math.abs(g - tg) < 10 && Math.abs(b - tb) < 10) {
+      
+      // Detect Magenta (r=255, g=0, b=255) with tolerance
+      const isMagenta = r > 200 && g < 50 && b > 200;
+      // Detect Cyan (r=0, g=255, b=255) with tolerance
+      const isCyan = r < 50 && g > 200 && b > 200;
+      // Detect White with tolerance
+      const isWhite = r > 240 && g > 240 && b > 240;
+
+      if (isMagenta || isCyan || isWhite) {
         data[i+3] = 0; // Set alpha to 0
       }
     }
