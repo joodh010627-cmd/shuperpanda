@@ -2,197 +2,38 @@
 // Sprites are extracted from sprite sheet images with chroma key (#00ff00) removal
 import { assets } from './assetLoader.js';
 
-// Panda sprite sheet layout: 3x3 grid
-// Row 0: idle(0), walk(1), jump(2)
-// Row 1: punch(3), kick(4), block(5)
-// Row 2: hit(6), laser(7), ko(8)
-const PANDA_COLS = 3;
-const PANDA_ROWS = 3;
-
-// Frog sprite sheet layout: 3x3 grid
-// Row 0: idle(0), walk(1), clap(2)
-// Row 1: tongue(3), stomp(4), hit(5)  
-// Row 2: idle2(6), hurt_fallen(7), ko(8)
-const FROG_COLS = 3;
-const FROG_ROWS = 2; // AI generated a 3x2 grid with 6 poses
-
 const PANDA_STATE_MAP = {
-  idle: 0, walk: 1, jump: 2,
-  punch: 3, kick: 4, block: 5,
-  hit: 6, laser: 7, ko: 8,
-  dash: 1,
+  idle: 11, walk: 12, jump: 13,
+  block: 17, punch: 15, kick: 16,
+  hit: 18, laser: 19, ko: 20,
+  dash: 14,
 };
 
 const FROG_STATE_MAP = {
-  idle: 0, walk: 0, jump: 1,
-  stomp: 1, tongue: 2, hit: 3,
-  ko: 4, clap: 5,
+  idle: 1, walk: 2, jump: 3,
+  stomp: 6, tongue: 5, clap: 4,
+  hit: 7, ko: 10,
 };
 
 // Cache for processed (chroma-keyed) sprites
 const spriteCache = {};
 
-const sheetFramesCache = {};
-
-function extractFrames(sheet, cols, rows) {
-  if (!sheet || !sheet.width || !sheet.height) return [];
-
-  const cacheKey = `${sheet.src || 'unknown'}_${cols}x${rows}`;
-  if (sheetFramesCache[cacheKey]) return sheetFramesCache[cacheKey];
-
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, sheet.width);
-    canvas.height = Math.max(1, sheet.height);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(sheet, 0, 0);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imgData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-
-    function isGreen(x, y) {
-      if (x < 0 || x >= width || y < 0 || y >= height) return true;
-      const i = (y * width + x) * 4;
-      const r = data[i], g = data[i+1], b = data[i+2];
-      return g > 150 && (g - r) > 80 && (g - b) > 80;
-    }
-
-    const cellW = width / cols;
-    const cellH = height / rows;
-    
-    const visited = new Uint8Array(width * height);
-    let blobs = [];
-
-    // 1. Find all continuous pixel blobs
-    for (let y = 0; y < height; y += 2) {
-      for (let x = 0; x < width; x += 2) {
-        const idx = y * width + x;
-        if (!visited[idx] && !isGreen(x, y)) {
-          let minX = x, maxX = x, minY = y, maxY = y;
-          const stack = [x, y];
-          visited[idx] = 1;
-
-          while (stack.length > 0) {
-            const cy = stack.pop();
-            const cx = stack.pop();
-
-            if (cx < minX) minX = cx;
-            if (cx > maxX) maxX = cx;
-            if (cy < minY) minY = cy;
-            if (cy > maxY) maxY = cy;
-
-            const neighbors = [
-              cx-1, cy, cx+1, cy, cx, cy-1, cx, cy+1,
-              cx-1, cy-1, cx+1, cy-1, cx-1, cy+1, cx+1, cy+1
-            ];
-            for (let i = 0; i < 16; i += 2) {
-              const nx = neighbors[i];
-              const ny = neighbors[i+1];
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                const nidx = ny * width + nx;
-                if (!visited[nidx] && !isGreen(nx, ny)) {
-                  visited[nidx] = 1;
-                  stack.push(nx, ny);
-                }
-              }
-            }
-          }
-
-          if (maxX - minX > 5 && maxY - minY > 5) {
-            blobs.push({ minX, minY, maxX, maxY });
-          }
-        }
-      }
-    }
-
-    // 2. Assign each blob to a grid cell based on its center point
-    const cellBounds = Array.from({ length: rows * cols }, () => null);
-    for (const blob of blobs) {
-      const centerX = (blob.minX + blob.maxX) / 2;
-      const centerY = (blob.minY + blob.maxY) / 2;
-      
-      let c = Math.floor(centerX / cellW);
-      let r = Math.floor(centerY / cellH);
-      
-      c = Math.max(0, Math.min(cols - 1, c));
-      r = Math.max(0, Math.min(rows - 1, r));
-      
-      const idx = r * cols + c;
-      if (!cellBounds[idx]) {
-        cellBounds[idx] = { ...blob };
-      } else {
-        cellBounds[idx].minX = Math.min(cellBounds[idx].minX, blob.minX);
-        cellBounds[idx].maxX = Math.max(cellBounds[idx].maxX, blob.maxX);
-        cellBounds[idx].minY = Math.min(cellBounds[idx].minY, blob.minY);
-        cellBounds[idx].maxY = Math.max(cellBounds[idx].maxY, blob.maxY);
-      }
-    }
-
-    // 3. Build exact frames mapping
-    const frames = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const idx = r * cols + c;
-        const b = cellBounds[idx];
-        if (b) {
-          frames.push({
-            x: b.minX,
-            y: b.minY,
-            w: Math.max(1, b.maxX - b.minX + 1),
-            h: Math.max(1, b.maxY - b.minY + 1)
-          });
-        } else {
-          frames.push({
-            x: Math.floor(c * cellW),
-            y: Math.floor(r * cellH),
-            w: Math.max(1, Math.floor(cellW)),
-            h: Math.max(1, Math.floor(cellH))
-          });
-        }
-      }
-    }
-
-    sheetFramesCache[cacheKey] = frames;
-    return frames;
-  } catch (e) {
-    console.error('Sprite extraction error:', e);
-    return [];
-  }
-}
-
-function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
-  const cacheKey = `${sheetKey}_${index}`;
+function getProcessedSprite(imageNum) {
+  const cacheKey = `image_${imageNum}`;
   if (spriteCache[cacheKey]) return spriteCache[cacheKey];
 
-  const sheet = assets.get(sheetKey);
-  if (!sheet || !sheet.width || !sheet.height) return null;
-
-  const frames = extractFrames(sheet, defaultCols, defaultRows);
-  
-  let frame;
-  if (frames.length > 0) {
-    frame = frames[Math.min(index, frames.length - 1)];
-  } else {
-    const cellW = Math.floor(sheet.width / defaultCols);
-    const cellH = Math.floor(sheet.height / defaultRows);
-    frame = { 
-      x: (index % defaultCols) * cellW, 
-      y: Math.floor(index / defaultCols) * cellH, 
-      w: Math.max(1, cellW), 
-      h: Math.max(1, cellH) 
-    };
-  }
+  const img = assets.get(cacheKey);
+  if (!img || !img.width || !img.height) return null;
 
   try {
-    const w = Math.max(1, frame.w);
-    const h = Math.max(1, frame.h);
+    const w = img.width;
+    const h = img.height;
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
 
-    ctx.drawImage(sheet, frame.x, frame.y, w, h, 0, 0, w, h);
+    ctx.drawImage(img, 0, 0);
 
     const imageData = ctx.getImageData(0, 0, w, h);
     const data = imageData.data;
@@ -222,8 +63,8 @@ function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
 // SUPER PANDA SPRITE (image-based)
 // ============================================================
 export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
-  const index = PANDA_STATE_MAP[state] ?? 0;
-  const sprite = getProcessedSprite('panda_sprites', index, PANDA_COLS, PANDA_ROWS);
+  const imageNum = PANDA_STATE_MAP[state] ?? 11;
+  const sprite = getProcessedSprite(imageNum);
 
   if (!sprite) {
     ctx.fillStyle = '#2563eb';
@@ -231,10 +72,11 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
     return;
   }
 
-  const sheet = assets.get('panda_sprites');
-  const baseCellH = (sheet && sheet.height > 0) ? sheet.height / PANDA_ROWS : 341;
-  const targetDrawH = 210; // fixed display height scaling reference
-  const scale = targetDrawH / baseCellH;
+  const idleSprite = getProcessedSprite(PANDA_STATE_MAP.idle);
+  const baseH = (idleSprite && idleSprite.height > 0) ? idleSprite.height : sprite.height;
+  
+  const targetDrawH = 210;
+  const scale = targetDrawH / baseH;
 
   const drawW = sprite.width * scale;
   const drawH = sprite.height * scale;
@@ -277,8 +119,8 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
 // FROG MANAGER SPRITE (image-based, bigger)
 // ============================================================
 export function drawFrog(ctx, x, y, facing, state, frame) {
-  const index = FROG_STATE_MAP[state] ?? 0;
-  const sprite = getProcessedSprite('frog_sprites', index, FROG_COLS, FROG_ROWS);
+  const imageNum = FROG_STATE_MAP[state] ?? 1;
+  const sprite = getProcessedSprite(imageNum);
 
   if (!sprite) {
     ctx.fillStyle = '#22c55e';
@@ -286,10 +128,11 @@ export function drawFrog(ctx, x, y, facing, state, frame) {
     return;
   }
 
-  const sheet = assets.get('frog_sprites');
-  const baseCellH = (sheet && sheet.height > 0) ? sheet.height / FROG_ROWS : 341;
-  const targetDrawH = 270; // fixed display height scaling reference
-  const scale = targetDrawH / baseCellH;
+  const idleSprite = getProcessedSprite(FROG_STATE_MAP.idle);
+  const baseH = (idleSprite && idleSprite.height > 0) ? idleSprite.height : sprite.height;
+  
+  const targetDrawH = 270;
+  const scale = targetDrawH / baseH;
 
   const drawW = sprite.width * scale;
   const drawH = sprite.height * scale;

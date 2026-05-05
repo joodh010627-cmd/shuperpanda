@@ -5,10 +5,12 @@ const ASSET_PATHS = {
   cutscene_stage2: './assets/cutscene_stage2.jpg',
   cutscene_stage2b: './assets/cutscene_stage2b.jpg',
   cutscene_ending: './assets/cutscene_ending.jpg',
-  panda_sprites: './assets/panda_sprites.png',
-  frog_sprites: './assets/frog_sprites.png',
   battle_bg: './assets/battle_bg.png',
 };
+
+for (let i = 1; i <= 20; i++) {
+  ASSET_PATHS[`image_${i}`] = `./assets/image ${i}.png`;
+}
 
 class AssetLoader {
   constructor() {
