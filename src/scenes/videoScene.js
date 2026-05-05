@@ -7,8 +7,9 @@ export class VideoScene {
     this.frame = 0;
     
     // Create video element
+    const version = Date.now();
     this.video = document.createElement('video');
-    this.video.src = `./assets/${videoId}.mp4`;
+    this.video.src = `./assets/${videoId}.mp4?v=${version}`;
     this.video.autoplay = true;
     this.video.muted = false; // Player probably wants to hear it
     this.video.playsInline = true;
