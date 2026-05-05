@@ -35,61 +35,67 @@ const spriteCache = {};
 const sheetFramesCache = {};
 
 function extractFrames(sheet, cols, rows) {
-  const cacheKey = `${sheet.src}_${cols}x${rows}`;
+  if (!sheet || !sheet.width || !sheet.height) return [];
+
+  const cacheKey = `${sheet.src || 'unknown'}_${cols}x${rows}`;
   if (sheetFramesCache[cacheKey]) return sheetFramesCache[cacheKey];
 
-  const canvas = document.createElement('canvas');
-  canvas.width = sheet.width;
-  canvas.height = sheet.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(sheet, 0, 0);
-  const imgData = ctx.getImageData(0, 0, sheet.width, sheet.height);
-  const data = imgData.data;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, sheet.width);
+    canvas.height = Math.max(1, sheet.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(sheet, 0, 0);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imgData.data;
 
-  function isGreen(x, y) {
-    if (x < 0 || x >= sheet.width || y < 0 || y >= sheet.height) return true;
-    const i = (y * sheet.width + x) * 4;
-    const r = data[i], g = data[i+1], b = data[i+2];
-    return g > 150 && (g - r) > 80 && (g - b) > 80;
-  }
+    function isGreen(x, y) {
+      if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return true;
+      const i = (y * canvas.width + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      return g > 150 && (g - r) > 80 && (g - b) > 80;
+    }
 
-  const cellW = sheet.width / cols;
-  const cellH = sheet.height / rows;
-  const frames = [];
+    const cellW = canvas.width / cols;
+    const cellH = canvas.height / rows;
+    const frames = [];
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const startX = Math.floor(c * cellW);
-      const startY = Math.floor(r * cellH);
-      const endX = Math.floor((c + 1) * cellW);
-      const endY = Math.floor((r + 1) * cellH);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const startX = Math.floor(c * cellW);
+        const startY = Math.floor(r * cellH);
+        const endX = Math.floor((c + 1) * cellW);
+        const endY = Math.floor((r + 1) * cellH);
 
-      let minX = endX, maxX = startX, minY = endY, maxY = startY;
-      let hasPixels = false;
+        let minX = endX, maxX = startX, minY = endY, maxY = startY;
+        let hasPixels = false;
 
-      // Find the exact bounding box of the character WITHIN this strict grid cell
-      for (let y = startY; y < endY; y++) {
-        for (let x = startX; x < endX; x++) {
-          if (!isGreen(x, y)) {
-            hasPixels = true;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
+        for (let y = startY; y < endY; y++) {
+          for (let x = startX; x < endX; x++) {
+            if (!isGreen(x, y)) {
+              hasPixels = true;
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
           }
         }
-      }
 
-      if (hasPixels) {
-        frames.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
-      } else {
-        frames.push({ x: startX, y: startY, w: Math.floor(cellW), h: Math.floor(cellH) });
+        if (hasPixels) {
+          frames.push({ x: minX, y: minY, w: Math.max(1, maxX - minX + 1), h: Math.max(1, maxY - minY + 1) });
+        } else {
+          frames.push({ x: startX, y: startY, w: Math.max(1, Math.floor(cellW)), h: Math.max(1, Math.floor(cellH)) });
+        }
       }
     }
-  }
 
-  sheetFramesCache[cacheKey] = frames;
-  return frames;
+    sheetFramesCache[cacheKey] = frames;
+    return frames;
+  } catch (e) {
+    console.error('Sprite extraction error:', e);
+    return [];
+  }
 }
 
 function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
@@ -97,7 +103,7 @@ function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
   if (spriteCache[cacheKey]) return spriteCache[cacheKey];
 
   const sheet = assets.get(sheetKey);
-  if (!sheet) return null;
+  if (!sheet || !sheet.width || !sheet.height) return null;
 
   const frames = extractFrames(sheet, defaultCols, defaultRows);
   
@@ -110,37 +116,43 @@ function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
     frame = { 
       x: (index % defaultCols) * cellW, 
       y: Math.floor(index / defaultCols) * cellH, 
-      w: cellW, 
-      h: cellH 
+      w: Math.max(1, cellW), 
+      h: Math.max(1, cellH) 
     };
   }
 
-  const canvas = document.createElement('canvas');
-  canvas.width = frame.w;
-  canvas.height = frame.h;
-  const ctx = canvas.getContext('2d');
+  try {
+    const w = Math.max(1, frame.w);
+    const h = Math.max(1, frame.h);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
 
-  ctx.drawImage(sheet, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
+    ctx.drawImage(sheet, frame.x, frame.y, w, h, 0, 0, w, h);
 
-  // Chroma key removal
-  const imageData = ctx.getImageData(0, 0, frame.w, frame.h);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const isChromaGreen = g > 150 && (g - r) > 80 && (g - b) > 80;
-    const isBrightChroma = g > 200 && r < 80 && b < 80;
-    
-    if (isBrightChroma) {
-      data[i + 3] = 0;
-    } else if (isChromaGreen) {
-      const greenness = Math.min(1, ((g - Math.max(r, b)) - 40) / 120);
-      data[i + 3] = Math.round((1 - greenness) * data[i + 3]);
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      const isChromaGreen = g > 150 && (g - r) > 80 && (g - b) > 80;
+      const isBrightChroma = g > 200 && r < 80 && b < 80;
+      
+      if (isBrightChroma) {
+        data[i + 3] = 0;
+      } else if (isChromaGreen) {
+        const greenness = Math.min(1, ((g - Math.max(r, b)) - 40) / 120);
+        data[i + 3] = Math.round((1 - greenness) * data[i + 3]);
+      }
     }
-  }
-  ctx.putImageData(imageData, 0, 0);
+    ctx.putImageData(imageData, 0, 0);
 
-  spriteCache[cacheKey] = canvas;
-  return canvas;
+    spriteCache[cacheKey] = canvas;
+    return canvas;
+  } catch (e) {
+    console.error('Sprite processing error:', e);
+    return null;
+  }
 }
 
 // ============================================================
