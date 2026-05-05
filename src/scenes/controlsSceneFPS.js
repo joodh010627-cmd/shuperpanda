@@ -41,9 +41,10 @@ export class ControlsSceneFPS {
     ctx.fillText('커피 더 헛의 습격을 막아내세요!', CANVAS_W / 2, 100);
 
     // Panda arm demo
-    const armImg = assets.get('panda_arm');
+    const armImg = assets.get('image_41');
     if (armImg) {
-      ctx.drawImage(armImg, 50, 180, 250, 250);
+      const scale = 300 / armImg.width;
+      ctx.drawImage(armImg, 50, 150, armImg.width * scale, armImg.height * scale);
     }
 
     // Controls layout

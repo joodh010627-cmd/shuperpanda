@@ -140,8 +140,8 @@ export class BattleSceneFPS {
         }
       } else if (e.type === 'boss') {
         // Keep distance around 10
-        if (dist < 8) e.z += 0.02;
-        else if (dist > 12) e.z -= 0.02;
+        if (dist < 8) e.z += 0.08;
+        else if (dist > 12) e.z -= 0.08;
 
         e.x += (dx / dist) * 0.01;
 
@@ -271,16 +271,26 @@ export class BattleSceneFPS {
       const screenX = CANVAS_W / 2 + (rotX / rotZ) * fov;
 
       if (r.isObj === 'enemy') {
-        const scale = (fov / rotZ) * r.scale;
-        const size = 60 * scale;
-        const img = assets.get(r.type === 'boss' ? 'coffee_boss' : 'mini_coffee');
+        let imgKey;
+        if (r.type === 'boss') {
+          const frameIndex = 21 + Math.floor(this.frame / 10) % 8;
+          imgKey = `image_${frameIndex}`;
+        } else {
+          const frameIndex = 31 + Math.floor(this.frame / 8) % 7;
+          imgKey = `image_${frameIndex}`;
+        }
+        const img = assets.get(imgKey);
         
         if (img) {
           ctx.save();
-          // Draw image centered at X, resting on floor at Y
-          const floorY = CANVAS_H/2 + 50 * (fov/rotZ); // Floor perspective
-          const drawY = floorY - size;
-          ctx.drawImage(img, screenX - size/2, drawY, size, size);
+          const scale = fov / rotZ;
+          const scaleFactor = 0.015; // Native image scaling adjustment
+          const drawW = img.width * scale * scaleFactor * r.scale;
+          const drawH = img.height * scale * scaleFactor * r.scale;
+          
+          const floorY = CANVAS_H/2 + 50 * scale; 
+          const drawY = floorY - drawH;
+          ctx.drawImage(img, screenX - drawW/2, drawY, drawW, drawH);
           ctx.restore();
         }
       } else if (r.isObj === 'proj') {
@@ -304,13 +314,15 @@ export class BattleSceneFPS {
       ctx.fillRect(pt.x, pt.y, 4, 4);
     });
 
-    // Weapon
-    const weaponImg = assets.get('panda_arm');
+    // Weapon (Panda Arm)
+    const armKey = this.player.weaponTimer > 0 ? 'image_42' : 'image_41';
+    const weaponImg = assets.get(armKey);
     if (weaponImg) {
-      const wWidth = 500, wHeight = 500;
+      const wWidth = 700;
+      const wHeight = weaponImg.height * (wWidth / weaponImg.width);
       // Centered at bottom
       const wx = (CANVAS_W - wWidth) / 2;
-      const wy = CANVAS_H - wHeight + 120 + (this.player.weaponTimer > 0 ? 30 : 0);
+      const wy = CANVAS_H - wHeight + 150 + (this.player.weaponTimer > 0 ? 30 : 0);
       ctx.drawImage(weaponImg, wx, wy, wWidth, wHeight);
     }
 

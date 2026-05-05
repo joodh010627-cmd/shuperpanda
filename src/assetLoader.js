@@ -6,14 +6,21 @@ const ASSET_PATHS = {
   cutscene_stage2b: './assets/cutscene_stage2b.jpg',
   cutscene_ending: './assets/cutscene_ending.jpg',
   battle_bg: './assets/battle_bg.png',
-  coffee_boss: './assets/coffee_boss.png',
-  mini_coffee: './assets/mini_coffee.png',
-  panda_arm: './assets/panda_arm.png',
+  // New assets will be loaded in the loop below
 };
+
+const fpsSpriteNumbers = [
+  21, 22, 23, 24, 25, 26, 27, 28, // Boss
+  31, 32, 33, 34, 35, 36, 37,     // Mini
+  41, 42                          // Panda Arm
+];
 
 for (let i = 1; i <= 20; i++) {
   ASSET_PATHS[`image_${i}`] = `./assets/image_${i}.png`;
 }
+fpsSpriteNumbers.forEach(i => {
+  ASSET_PATHS[`image_${i}`] = `./assets/image_${i}.png`;
+});
 
 class AssetLoader {
   constructor() {
@@ -30,7 +37,8 @@ class AssetLoader {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-          if (['coffee_boss', 'mini_coffee', 'panda_arm'].includes(key)) {
+          // Apply background removal to the new FPS sprites
+          if (key.startsWith('image_') && fpsSpriteNumbers.includes(parseInt(key.split('_')[1]))) {
             this.images[key] = this._removeBackground(img);
           } else {
             this.images[key] = img;
