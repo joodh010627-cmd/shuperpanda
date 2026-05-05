@@ -161,7 +161,20 @@ export class BattleScene {
     f.x += f.vx; f.y += f.vy;
 
     // Ground
-    if (f.y >= GROUND_Y) { f.y = GROUND_Y; f.vy = 0; f.isGrounded = true; if (f.state === 'jump') f.state = 'idle'; }
+    if (f.y >= GROUND_Y) { 
+      const wasGrounded = f.isGrounded;
+      f.y = GROUND_Y; f.vy = 0; f.isGrounded = true; 
+      if (f.state === 'jump') f.state = 'idle'; 
+      if (!wasGrounded && f === this.boss && f.state === 'stomp') {
+        this.shakeDur = 15;
+        this.hitEffects.push({ x: f.x - 40, y: f.y, frame: 0 });
+        this.hitEffects.push({ x: f.x + 40, y: f.y, frame: 0 });
+        const p = this.player;
+        if (Math.abs(p.x - f.x) < 220) {
+          this._dealDamageToPlayer(FROG_STOMP_DMG, f.x < p.x ? 1 : -1, 15);
+        }
+      }
+    }
     else { f.isGrounded = false; }
 
     // Stage bounds
@@ -211,16 +224,19 @@ export class BattleScene {
     }
 
     // Boss attacks player
-    if (b.state === 'clap' && b.stateTimer === 6 && dist < FROG_CLAP_RANGE && bFacingPlayer && !b.hasHitThisAttack) {
-      this._dealDamageToPlayer(FROG_CLAP_DMG, b.facing);
-      b.hasHitThisAttack = true;
+    if (b.state === 'clap' && b.stateTimer === 6) {
+      if (dist < FROG_CLAP_RANGE && bFacingPlayer && !b.hasHitThisAttack) {
+        this._dealDamageToPlayer(FROG_CLAP_DMG, b.facing);
+        b.hasHitThisAttack = true;
+      }
+      if (!b.hasProducedEffect) {
+        this.shakeDur = 4;
+        this.hitEffects.push({ x: b.x + b.facing * 80, y: b.y - 80, frame: 0 });
+        b.hasProducedEffect = true;
+      }
     }
     if (b.state === 'tongue' && b.stateTimer >= 5 && b.stateTimer <= 12 && b.stateTimer % 3 === 0 && dist < FROG_TONGUE_RANGE && bFacingPlayer && !b.hasHitThisAttack) {
       this._dealDamageToPlayer(FROG_TONGUE_DMG, b.facing);
-      b.hasHitThisAttack = true;
-    }
-    if (b.state === 'stomp' && b.stateTimer === 10 && dist < 130 && b.isGrounded && !b.hasHitThisAttack) {
-      this._dealDamageToPlayer(FROG_STOMP_DMG, b.facing);
       b.hasHitThisAttack = true;
     }
   }
@@ -237,7 +253,7 @@ export class BattleScene {
     this.shakeDur = 4;
   }
 
-  _dealDamageToPlayer(dmg, fromFacing) {
+  _dealDamageToPlayer(dmg, fromFacing, customKnockback = null) {
     const p = this.player;
     if (p.invincible > 0) return;
     let actualDmg = dmg;
@@ -248,11 +264,11 @@ export class BattleScene {
     if (p.gauge >= MAX_GAUGE) this.game.sound.gaugeMax();
     if (p.state !== 'block') {
       p.hitstun = HITSTUN_FRAMES; p.state = 'hit'; p.stateTimer = 0;
-      p.vx = fromFacing * KNOCKBACK_FORCE;
+      p.vx = fromFacing * (customKnockback !== null ? customKnockback : KNOCKBACK_FORCE);
     }
     p.invincible = INVINCIBLE_FRAMES;
     this.hitEffects.push({ x: p.x, y: p.y - 40, frame: 0 });
-    this.shakeDur = 5;
+    this.shakeDur = Math.max(this.shakeDur || 0, 5);
   }
 
   _updateBossAI() {
@@ -260,7 +276,7 @@ export class BattleScene {
     if (b.hitstun > 0 || b.state === 'ko') return;
     if (['clap','tongue','stomp'].includes(b.state)) {
       if (b.state === 'stomp' && !b.isGrounded) {
-        b.x += b.facing * 4; // Smooth forward movement in the air
+        b.x += b.facing * 6; // Smooth forward movement in the air
       }
       return;
     }
@@ -273,12 +289,12 @@ export class BattleScene {
 
     if (b.attackCooldown <= 0 && b.isGrounded) {
       let attack = null;
-      if (dist < 110) { attack = 'clap'; b.attackCooldown = Math.floor(70 * cooldownMod); }
-      else if (dist < 260) { attack = Math.random() < 0.6 ? 'tongue' : 'stomp'; b.attackCooldown = Math.floor(80 * cooldownMod); }
-      else { attack = 'stomp'; b.attackCooldown = Math.floor(75 * cooldownMod); }
+      if (dist < 130) { attack = 'clap'; b.attackCooldown = Math.floor(60 * cooldownMod); }
+      else if (dist < 320) { attack = Math.random() < 0.8 ? 'tongue' : 'stomp'; b.attackCooldown = Math.floor(55 * cooldownMod); }
+      else { attack = Math.random() < 0.7 ? 'tongue' : 'stomp'; b.attackCooldown = Math.floor(65 * cooldownMod); }
 
       if (attack) {
-        b.state = attack; b.stateTimer = 0; b.vx = 0; b.hasHitThisAttack = false;
+        b.state = attack; b.stateTimer = 0; b.vx = 0; b.hasHitThisAttack = false; b.hasProducedEffect = false;
         if (attack === 'clap') this.game.sound.clap();
         if (attack === 'tongue') this.game.sound.tongue();
         if (attack === 'stomp') { 

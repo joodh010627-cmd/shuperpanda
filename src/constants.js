@@ -17,8 +17,8 @@ export const PANDA_HP = 100;
 export const PANDA_PUNCH_DMG = 6;
 export const PANDA_KICK_DMG = 10;
 export const PANDA_LASER_DMG = 35;
-export const PANDA_PUNCH_RANGE = 60;
-export const PANDA_KICK_RANGE = 75;
+export const PANDA_PUNCH_RANGE = 120;
+export const PANDA_KICK_RANGE = 140;
 export const GAUGE_PER_HIT = 15; // gauge gained when hit
 export const MAX_GAUGE = 100;
 
