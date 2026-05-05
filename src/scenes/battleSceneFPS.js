@@ -119,7 +119,7 @@ export class BattleSceneFPS {
       e.stateTimer = (e.stateTimer || 0) + 1;
 
       // Handle hit state duration
-      if (e.state === 'hit' && e.stateTimer > 10) {
+      if (e.state === 'hit' && e.stateTimer > 6) {
         e.state = 'idle';
       }
 
@@ -334,7 +334,7 @@ export class BattleSceneFPS {
           case 'idle': imgKey = 'image_21'; break;
           case 'move': imgKey = (Math.floor(this.frame / 15) % 2 === 0) ? 'image_22' : 'image_23'; break;
           case 'spawn': imgKey = 'image_24'; break;
-          case 'hit': imgKey = (Math.floor(this.frame / 5) % 2 === 0) ? 'image_25' : 'image_26'; break;
+          case 'hit': imgKey = (Math.floor(this.frame / 3) % 2 === 0) ? 'image_25' : 'image_26'; break;
           case 'die': imgKey = (r.stateTimer < 60) ? 'image_27' : 'image_28'; break;
         }
       } else {
