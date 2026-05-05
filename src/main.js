@@ -98,6 +98,9 @@ class Game {
       case 'battle_stage2':
         this.scene = new BattleSceneFPS(this);
         break;
+      case 'cutscene_stage3':
+        this.scene = new CutsceneScene(this, 'stage3');
+        break;
       case 'controls':
         this.scene = new ControlsScene(this);
         break;

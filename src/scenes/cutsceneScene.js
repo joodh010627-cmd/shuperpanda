@@ -26,10 +26,10 @@ const CUTSCENES = {
     ],
     next: 'animation_stage'
   },
-  stage2b: {
-    image: 'cutscene_stage2b',
+  stage3: {
+    image: 'cutscene_stage3',
     dialogs: [
-      { speaker: '시스템', text: 'Stage 2\n커피 더 헛의 습격!' },
+      { speaker: '슈퍼 판다', text: '이제 집에 다 와가는 것 같아!' },
     ],
     next: 'title'
   }

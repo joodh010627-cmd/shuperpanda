@@ -2,8 +2,8 @@
 const ASSET_PATHS = {
   title: './assets/title.jpg',
   cutscene_stage1: './assets/cutscene_stage1.jpg',
-  cutscene_stage2: './assets/cutscene_stage2.jpg',
-  cutscene_stage2b: './assets/cutscene_stage2b.jpg',
+  cutscene_stage2: './assets/cutscene_stage2.png',
+  cutscene_stage3: './assets/cutscene_stage3.jpg',
   cutscene_ending: './assets/cutscene_ending.jpg',
   battle_bg: './assets/battle_bg.png',
   battle2_bg: './assets/battle2_bg.png',

@@ -69,7 +69,7 @@ export class BattleSceneFPS {
     if (!this.boss.active) {
       this.winTimer++;
       if (this.winTimer > 120) {
-        this.game.switchScene('title');
+        this.game.switchScene('cutscene_stage3');
       }
       return;
     }
