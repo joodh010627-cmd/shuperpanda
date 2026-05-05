@@ -15,7 +15,7 @@ export class BattleSceneFPS {
     this.wave = 0;
     this.waveTimer = 0; 
     this.boss = { 
-      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 20, type: 'boss', hp: 300, active: true, scale: 0.225,
+      id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 20, type: 'boss', hp: 500, active: true, scale: 0.225,
       state: 'idle', stateTimer: 0, spawnTriggered: false
     };
     this.enemies = [this.boss];
