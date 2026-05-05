@@ -22,6 +22,7 @@ class AssetLoader {
   loadAll() {
     return new Promise((resolve) => {
       if (this.total === 0) { resolve(); return; }
+      const version = Date.now(); // 강제 캐시 초기화
       for (const [key, path] of Object.entries(ASSET_PATHS)) {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -35,7 +36,7 @@ class AssetLoader {
           this.loaded++;
           if (this.loaded >= this.total) resolve();
         };
-        img.src = path;
+        img.src = `${path}?v=${version}`;
       }
     });
   }
