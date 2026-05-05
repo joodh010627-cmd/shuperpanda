@@ -4,6 +4,7 @@ import { CANVAS_W, CANVAS_H, GRAVITY, GROUND_Y, FRICTION, MOVE_SPEED, DASH_SPEED
   BLOCK_REDUCTION, HITSTUN_FRAMES, KNOCKBACK_FORCE, INVINCIBLE_FRAMES, STAGE_LEFT, STAGE_RIGHT
 } from '../constants.js';
 import { drawPanda, drawFrog, drawHitEffect } from '../sprites.js';
+import { assets } from '../assetLoader.js';
 
 export class BattleScene {
   constructor(game) {
@@ -325,40 +326,19 @@ export class BattleScene {
   }
 
   _drawBackground(ctx) {
-    // Office floor and walls
-    ctx.fillStyle = '#d4d4d8';
-    ctx.fillRect(0, 0, CANVAS_W, GROUND_Y + 4);
-    ctx.fillStyle = '#78716c';
-    ctx.fillRect(0, GROUND_Y + 4, CANVAS_W, CANVAS_H - GROUND_Y);
-    // Baseboard
-    ctx.fillStyle = '#57534e';
-    ctx.fillRect(0, GROUND_Y - 2, CANVAS_W, 6);
-    // Ceiling
-    ctx.fillStyle = '#a8a29e';
-    ctx.fillRect(0, 0, CANVAS_W, 30);
-    // Lights
-    ctx.fillStyle = '#fef9c3';
-    for (let i = 0; i < 5; i++) ctx.fillRect(80 + i * 200, 28, 80, 6);
-    // Windows
-    for (let i = 0; i < 3; i++) {
-      ctx.fillStyle = '#1e3a5f';
-      ctx.fillRect(60 + i * 310, 60, 120, 100);
-      ctx.fillStyle = '#ff8f00';
-      ctx.fillRect(65 + i * 310, 65, 110, 90);
-      ctx.fillStyle = '#a8a29e';
-      ctx.fillRect(118 + i * 310, 60, 4, 100);
-      ctx.fillRect(60 + i * 310, 108, 120, 4);
+    const bgImg = assets.get('battle_bg');
+    if (bgImg) {
+      // Draw the pixel art office background image
+      ctx.drawImage(bgImg, 0, 0, CANVAS_W, CANVAS_H);
+    } else {
+      // Fallback: simple colored background
+      ctx.fillStyle = '#d4d4d8';
+      ctx.fillRect(0, 0, CANVAS_W, GROUND_Y + 4);
+      ctx.fillStyle = '#78716c';
+      ctx.fillRect(0, GROUND_Y + 4, CANVAS_W, CANVAS_H - GROUND_Y);
+      ctx.fillStyle = '#57534e';
+      ctx.fillRect(0, GROUND_Y - 2, CANVAS_W, 6);
     }
-    // Desk
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(400, GROUND_Y - 50, 160, 8);
-    ctx.fillRect(420, GROUND_Y - 42, 8, 42);
-    ctx.fillRect(540, GROUND_Y - 42, 8, 42);
-    // Bookshelf
-    ctx.fillStyle = '#44403c';
-    ctx.fillRect(30, 180, 60, 200);
-    ctx.fillStyle = '#92400e';
-    for (let i = 0; i < 4; i++) ctx.fillRect(35, 190 + i * 45, 50, 35);
   }
 
   _drawHUD(ctx) {

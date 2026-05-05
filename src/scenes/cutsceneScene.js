@@ -1,24 +1,28 @@
 import { CANVAS_W, CANVAS_H } from '../constants.js';
-import { drawPanda, drawFrog } from '../sprites.js';
+import { assets } from '../assetLoader.js';
 
+// Cutscenes now display the original comic panel images directly
+// Each cutscene is simply the original image shown full-screen with dialog overlay
 const CUTSCENES = {
   stage1: {
-    panels: [
-      { speaker: '슈퍼 판다', text: '앗, 벌써 퇴근 시간이네?\n슬슬 일어나야지.', bg: 'office', panda: 'idle', frog: null },
-      { speaker: '슈퍼 판다', text: '과장님, 이만 퇴근해\n보겠습니다!', bg: 'office', panda: 'idle', frog: 'idle' },
-      { speaker: '개구리 과장', text: '아하하~~~\n퇴근이래 퇴근!!\n너무 웃겨!!!', bg: 'office', panda: null, frog: 'idle' },
-      { speaker: '개구리 과장', text: '너가 퇴근을 할 수\n있을 것 같아?!\n어림 없어!!', bg: 'boss', panda: null, frog: 'idle' },
-      { speaker: '슈퍼 판다', text: '...쳇,\n후회하지 마세요!', bg: 'boss', panda: 'idle', frog: null },
+    image: 'cutscene_stage1',
+    dialogs: [
+      { speaker: '슈퍼 판다', text: '앗, 벌써 퇴근 시간이네?\n슬슬 일어나야지.' },
+      { speaker: '슈퍼 판다', text: '과장님, 이만 퇴근해\n보겠습니다!' },
+      { speaker: '개구리 과장', text: '아하하~~~\n퇴근이래 퇴근!!\n너무 웃겨!!!' },
+      { speaker: '개구리 과장', text: '너가 퇴근을 할 수\n있을 것 같아?!\n어림 없어!!' },
+      { speaker: '슈퍼 판다', text: '...쳇,\n후회하지 마세요!' },
     ],
     next: 'controls'
   },
   stage2: {
-    panels: [
-      { speaker: '슈퍼 판다', text: '휴... 겨우 이겼다.\n과장님도 참...', bg: 'hallway', panda: 'idle', frog: null },
-      { speaker: '슈퍼 판다', text: '이제 진짜 퇴근이다!\n엘리베이터만 타면...', bg: 'hallway', panda: 'idle', frog: null },
-      { speaker: '???', text: '어? 안녕하세요~', bg: 'elevator', panda: 'idle', frog: null },
-      { speaker: '커피 더 헛', text: '아까 텀블러 뚜껑\n안 열어서 건내줬지?\n복수하러 왔다!!', bg: 'boss', panda: null, frog: null },
-      { speaker: '슈퍼 판다', text: '네? 죄송해요,\n다음에는 잘 드릴게요\nㅎㅎ;;', bg: 'boss', panda: 'idle', frog: null },
+    image: 'cutscene_stage2',
+    dialogs: [
+      { speaker: '개구리 과장', text: '슈 인턴,\n내가 졌어...\n퇴근해도 좋아ㅠ' },
+      { speaker: '슈퍼 판다', text: '감사합니다~\n맛저하세요!' },
+      { speaker: '슈퍼 판다', text: '어?\n안녕하세요' },
+      { speaker: '커피 더 헛', text: '아까 텀블러 뚜껑\n안 열어서 건내줬지?\n복수하러 왔다!!' },
+      { speaker: '슈퍼 판다', text: '네? 죄송해요,\n다음에는 잘 드릴게요\nㅎㅎ;;' },
     ],
     next: 'title'
   }
@@ -28,19 +32,25 @@ export class CutsceneScene {
   constructor(game, cutsceneId) {
     this.game = game;
     this.data = CUTSCENES[cutsceneId];
-    this.panelIndex = 0;
+    this.dialogIndex = 0;
     this.charIndex = 0;
     this.frame = 0;
     this.textSpeed = 2;
     this.waitingForInput = false;
     this.fullText = '';
     this.displayText = '';
+    this.fadeIn = 0; // fade in effect
   }
 
   update(input) {
     this.frame++;
-    const panel = this.data.panels[this.panelIndex];
-    this.fullText = panel.text;
+    if (this.fadeIn < 1) {
+      this.fadeIn = Math.min(1, this.fadeIn + 0.02);
+      return;
+    }
+
+    const dialog = this.data.dialogs[this.dialogIndex];
+    this.fullText = dialog.text;
 
     if (!this.waitingForInput) {
       if (this.frame % this.textSpeed === 0) {
@@ -58,11 +68,11 @@ export class CutsceneScene {
     } else {
       if (input.justPressed('Enter') || input.justPressed('Space') || input.justPressed('KeyZ')) {
         this.game.sound.menuSelect();
-        this.panelIndex++;
+        this.dialogIndex++;
         this.charIndex = 0;
         this.waitingForInput = false;
         this.displayText = '';
-        if (this.panelIndex >= this.data.panels.length) {
+        if (this.dialogIndex >= this.data.dialogs.length) {
           this.game.switchScene(this.data.next);
           return;
         }
@@ -71,162 +81,67 @@ export class CutsceneScene {
   }
 
   render(ctx) {
-    const panel = this.data.panels[this.panelIndex];
+    const bgImg = assets.get(this.data.image);
 
-    // Background
-    this._drawBackground(ctx, panel.bg);
-
-    // Character sprites
-    if (panel.panda) {
-      drawPanda(ctx, 250, CANVAS_H - 160, 1, panel.panda, this.frame);
+    if (bgImg) {
+      // Draw the original comic panel image full-screen
+      ctx.globalAlpha = this.fadeIn;
+      ctx.drawImage(bgImg, 0, 0, CANVAS_W, CANVAS_H);
+      ctx.globalAlpha = 1;
+    } else {
+      // Fallback
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     }
-    if (panel.frog) {
-      drawFrog(ctx, CANVAS_W - 250, CANVAS_H - 160, -1, panel.frog, this.frame);
-    }
 
-    // Dialog box
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(40, CANVAS_H - 140, CANVAS_W - 80, 120);
-    ctx.strokeStyle = '#fbbf24';
+    if (this.fadeIn < 1) return; // Don't show UI during fade
+
+    const dialog = this.data.dialogs[this.dialogIndex];
+
+    // Dark overlay at bottom for dialog readability
+    const dialogBoxY = CANVAS_H - 150;
+    const dialogBoxH = 130;
+
+    // Dialog box with gradient background
+    const grad = ctx.createLinearGradient(0, dialogBoxY - 10, 0, dialogBoxY + dialogBoxH);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(0.1, 'rgba(0, 0, 0, 0.85)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.92)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, dialogBoxY - 10, CANVAS_W, dialogBoxH + 10);
+
+    // Dialog box border
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
     ctx.lineWidth = 2;
-    ctx.strokeRect(40, CANVAS_H - 140, CANVAS_W - 80, 120);
+    ctx.strokeRect(30, dialogBoxY, CANVAS_W - 60, dialogBoxH - 15);
 
-    // Speaker name
+    // Speaker name tag
     ctx.font = '12px "Press Start 2P"';
-    ctx.fillStyle = '#fbbf24';
-    ctx.fillText(panel.speaker, 70, CANVAS_H - 118);
+    const nameWidth = ctx.measureText(dialog.speaker).width;
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.9)';
+    ctx.fillRect(45, dialogBoxY - 14, nameWidth + 20, 24);
+    ctx.fillStyle = '#000';
+    ctx.fillText(dialog.speaker, 55, dialogBoxY + 4);
 
     // Dialog text
     ctx.font = '13px "Press Start 2P"';
     ctx.fillStyle = '#ffffff';
     const lines = this.displayText.split('\n');
     lines.forEach((line, i) => {
-      ctx.fillText(line, 70, CANVAS_H - 95 + i * 22);
+      ctx.fillText(line, 55, dialogBoxY + 35 + i * 24);
     });
 
     // Continue prompt
     if (this.waitingForInput && Math.floor(this.frame / 20) % 2 === 0) {
       ctx.fillStyle = '#fbbf24';
-      ctx.fillText('▼', CANVAS_W - 90, CANVAS_H - 35);
+      ctx.fillText('▼', CANVAS_W - 70, dialogBoxY + dialogBoxH - 25);
     }
 
     // Panel counter
     ctx.font = '10px "Press Start 2P"';
-    ctx.fillStyle = '#666';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.textAlign = 'right';
-    ctx.fillText(`${this.panelIndex + 1}/${this.data.panels.length}`, CANVAS_W - 50, 30);
-    ctx.textAlign = 'left';
-  }
-
-  _drawBackground(ctx, bgType) {
-    switch (bgType) {
-      case 'office':
-        this._drawOffice(ctx);
-        break;
-      case 'hallway':
-        this._drawHallway(ctx);
-        break;
-      case 'elevator':
-        this._drawElevator(ctx);
-        break;
-      case 'boss':
-        this._drawBossIntro(ctx);
-        break;
-      default:
-        ctx.fillStyle = '#1a1a2e';
-        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    }
-  }
-
-  _drawOffice(ctx) {
-    // Floor
-    ctx.fillStyle = '#374151';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    ctx.fillStyle = '#4b5563';
-    ctx.fillRect(0, CANVAS_H - 180, CANVAS_W, 180);
-    // Walls
-    ctx.fillStyle = '#d1d5db';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H - 180);
-    // Ceiling line
-    ctx.fillStyle = '#9ca3af';
-    ctx.fillRect(0, 30, CANVAS_W, 3);
-    // Clock
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(200, 60, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    // Desk
-    ctx.fillStyle = '#92400e';
-    ctx.fillRect(50, CANVAS_H - 220, 200, 15);
-    ctx.fillRect(60, CANVAS_H - 205, 10, 40);
-    ctx.fillRect(230, CANVAS_H - 205, 10, 40);
-    // Monitor
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(120, CANVAS_H - 280, 70, 50);
-    ctx.fillStyle = '#3b82f6';
-    ctx.fillRect(125, CANVAS_H - 275, 60, 40);
-    // Window
-    ctx.fillStyle = '#1e3a5f';
-    ctx.fillRect(CANVAS_W - 200, 50, 150, 120);
-    ctx.fillStyle = '#ff6f00';
-    ctx.fillRect(CANVAS_W - 195, 55, 140, 110);
-    ctx.fillStyle = '#9ca3af';
-    ctx.fillRect(CANVAS_W - 125, 50, 4, 120);
-    ctx.fillRect(CANVAS_W - 200, 105, 150, 4);
-  }
-
-  _drawHallway(ctx) {
-    ctx.fillStyle = '#e5e7eb';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    ctx.fillStyle = '#6b7280';
-    ctx.fillRect(0, CANVAS_H - 160, CANVAS_W, 160);
-    // Doors
-    for (let i = 0; i < 4; i++) {
-      ctx.fillStyle = '#92400e';
-      ctx.fillRect(100 + i * 220, CANVAS_H - 320, 80, 160);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillRect(170 + i * 220, CANVAS_H - 250, 5, 5);
-    }
-    // Fluorescent lights
-    ctx.fillStyle = '#fef3c7';
-    for (let i = 0; i < 5; i++) {
-      ctx.fillRect(50 + i * 200, 20, 100, 8);
-    }
-  }
-
-  _drawElevator(ctx) {
-    ctx.fillStyle = '#9ca3af';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    // Elevator doors
-    ctx.fillStyle = '#6b7280';
-    ctx.fillRect(CANVAS_W / 2 - 120, CANVAS_H - 380, 110, 240);
-    ctx.fillRect(CANVAS_W / 2 + 10, CANVAS_H - 380, 110, 240);
-    ctx.fillStyle = '#4b5563';
-    ctx.fillRect(CANVAS_W / 2 - 130, CANVAS_H - 400, 260, 20);
-    // Floor
-    ctx.fillStyle = '#4b5563';
-    ctx.fillRect(0, CANVAS_H - 140, CANVAS_W, 140);
-  }
-
-  _drawBossIntro(ctx) {
-    // Dark dramatic background
-    const grad = ctx.createRadialGradient(CANVAS_W / 2, CANVAS_H / 2, 50, CANVAS_W / 2, CANVAS_H / 2, 400);
-    grad.addColorStop(0, '#7f1d1d');
-    grad.addColorStop(0.5, '#450a0a');
-    grad.addColorStop(1, '#0a0a0a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    // BOSS text
-    ctx.font = '28px "Press Start 2P"';
-    ctx.fillStyle = '#ef4444';
-    ctx.textAlign = 'center';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 4;
-    ctx.strokeText('BOSS: 개구리 과장', CANVAS_W / 2, 60);
-    ctx.fillText('BOSS: 개구리 과장', CANVAS_W / 2, 60);
+    ctx.fillText(`${this.dialogIndex + 1}/${this.data.dialogs.length}`, CANVAS_W - 40, 25);
     ctx.textAlign = 'left';
   }
 }
