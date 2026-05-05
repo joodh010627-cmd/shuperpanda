@@ -43,10 +43,10 @@ export class ControlsSceneFPS {
     // Goal & Rule Section
     const boxY = CANVAS_H / 2 - 20;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(80, boxY - 60, CANVAS_W - 160, 200);
+    ctx.fillRect(80, boxY - 60, CANVAS_W - 160, 230);
     ctx.strokeStyle = '#fbbf24';
     ctx.lineWidth = 2;
-    ctx.strokeRect(80, boxY - 60, CANVAS_W - 160, 200);
+    ctx.strokeRect(80, boxY - 60, CANVAS_W - 160, 230);
 
     ctx.font = '16px "Press Start 2P"';
     ctx.fillStyle = '#fff';
