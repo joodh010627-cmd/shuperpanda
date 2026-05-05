@@ -233,17 +233,46 @@ export class BattleSceneFPS {
       ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
     }
 
-    // Draw background (Office Corridor)
-    const bg = assets.get('cutscene_stage2');
-    if (bg) {
-      // Pan background slightly based on yaw
-      const panX = -this.player.yaw * 200;
-      // Draw scaled up to allow panning
-      ctx.drawImage(bg, panX - 50, -50, CANVAS_W + 100, CANVAS_H + 100);
-    } else {
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    // Draw background (Procedural Office Corridor)
+    // Pan background slightly based on yaw
+    const panX = -this.player.yaw * 300;
+    
+    // Ceiling
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H/2);
+    
+    // Floor
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(0, CANVAS_H/2, CANVAS_W, CANVAS_H/2);
+    
+    // Draw perspective walls to simulate corridor
+    ctx.save();
+    ctx.translate(panX, 0);
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 3;
+    
+    // Perspective lines
+    const vpX = CANVAS_W/2;
+    const vpY = CANVAS_H/2;
+    
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(vpX + i*200, vpY);
+      ctx.lineTo(vpX + i*800, CANVAS_H);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(vpX + i*200, vpY);
+      ctx.lineTo(vpX + i*800, 0);
+      ctx.stroke();
     }
+    
+    // Horizon line
+    ctx.beginPath();
+    ctx.moveTo(-1000, vpY);
+    ctx.lineTo(CANVAS_W+1000, vpY);
+    ctx.stroke();
+    ctx.restore();
 
     // Sort renderables (enemies + projectiles) by depth (z)
     let renderables = [];
@@ -288,7 +317,9 @@ export class BattleSceneFPS {
           const drawW = img.width * scale * scaleFactor * r.scale;
           const drawH = img.height * scale * scaleFactor * r.scale;
           
-          const floorY = CANVAS_H/2 + 50 * scale; 
+          // Fix: Camera height is much lower so sprites don't drop off the bottom of the screen
+          const cameraHeight = 15; 
+          const floorY = CANVAS_H/2 + cameraHeight * scale; 
           const drawY = floorY - drawH;
           ctx.drawImage(img, screenX - drawW/2, drawY, drawW, drawH);
           ctx.restore();
@@ -296,7 +327,8 @@ export class BattleSceneFPS {
       } else if (r.isObj === 'proj') {
         const scale = (fov / rotZ);
         const size = 20 * scale;
-        const floorY = CANVAS_H/2 + 50 * scale;
+        const cameraHeight = 15;
+        const floorY = CANVAS_H/2 + cameraHeight * scale;
         // Projectiles fly a bit higher
         ctx.fillStyle = '#4a2f1d';
         ctx.beginPath();
@@ -318,11 +350,12 @@ export class BattleSceneFPS {
     const armKey = this.player.weaponTimer > 0 ? 'image_42' : 'image_41';
     const weaponImg = assets.get(armKey);
     if (weaponImg) {
-      const wWidth = 700;
+      const wWidth = 600;
       const wHeight = weaponImg.height * (wWidth / weaponImg.width);
       // Centered at bottom
       const wx = (CANVAS_W - wWidth) / 2;
-      const wy = CANVAS_H - wHeight + 150 + (this.player.weaponTimer > 0 ? 30 : 0);
+      const wy = CANVAS_H - wHeight + 50 + (this.player.weaponTimer > 0 ? 30 : 0);
+      
       ctx.drawImage(weaponImg, wx, wy, wWidth, wHeight);
     }
 
