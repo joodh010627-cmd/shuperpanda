@@ -26,9 +26,20 @@ export class InputManager {
     this.mouseDeltaX = 0;
     this.mouseClicked = false;
     this.mouseDown = false;
+    this.mouseX = 400; // default center
+    this.mouseY = 300;
 
     window.addEventListener('mousemove', (e) => {
       this.mouseDeltaX += e.movementX || 0;
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        // Assume logical size is 800x600 (from constants)
+        const scaleX = 800 / rect.width;
+        const scaleY = 600 / rect.height;
+        this.mouseX = (e.clientX - rect.left) * scaleX;
+        this.mouseY = (e.clientY - rect.top) * scaleY;
+      }
     });
 
     window.addEventListener('mousedown', () => {

@@ -49,10 +49,8 @@ export class ControlsSceneFPS {
 
     // Controls layout
     const controls = [
-      { key: 'W,A,S,D', desc: '이동 및 옆걸음', y: 180 },
-      { key: 'MOUSE', desc: '시점 회전', y: 250 },
-      { key: 'CLICK', desc: '레이저 발사', y: 320 },
-      { key: 'ESC', desc: '마우스 커서 해제', y: 390 },
+      { key: 'MOUSE', desc: '조준선(커서) 이동', y: 220 },
+      { key: 'CLICK', desc: '텀블러 레이저 발사', y: 320 },
     ];
 
     ctx.textAlign = 'left';
