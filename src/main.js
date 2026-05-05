@@ -7,6 +7,7 @@ import { CutsceneScene } from './scenes/cutsceneScene.js';
 import { ControlsScene } from './scenes/controlsScene.js';
 import { BattleScene } from './scenes/battleScene.js';
 import { VideoScene } from './scenes/videoScene.js';
+import { BattleSceneFPS } from './scenes/battleSceneFPS.js';
 
 class Game {
   constructor() {
@@ -88,7 +89,10 @@ class Game {
         this.scene = new CutsceneScene(this, 'stage2');
         break;
       case 'animation_stage':
-        this.scene = new VideoScene(this, 'animation_stage2', 'title');
+        this.scene = new VideoScene(this, 'animation_stage2', 'battle_stage2');
+        break;
+      case 'battle_stage2':
+        this.scene = new BattleSceneFPS(this);
         break;
       case 'controls':
         this.scene = new ControlsScene(this);

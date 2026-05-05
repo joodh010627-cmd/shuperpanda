@@ -6,6 +6,9 @@ const ASSET_PATHS = {
   cutscene_stage2b: './assets/cutscene_stage2b.jpg',
   cutscene_ending: './assets/cutscene_ending.jpg',
   battle_bg: './assets/battle_bg.png',
+  coffee_boss: './assets/coffee_boss.png',
+  mini_coffee: './assets/mini_coffee.png',
+  panda_arm: './assets/panda_arm.png',
 };
 
 for (let i = 1; i <= 20; i++) {
