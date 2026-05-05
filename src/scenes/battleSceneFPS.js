@@ -294,14 +294,21 @@ export class BattleSceneFPS {
 
         // Draw with bottom alignment based on the idle image's bottom coordinate
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
-        // Increase floor offset for the boss to keep it grounded during death
-        const bossFloorOffset = r.type === 'boss' ? 40 * r.scale : 0;
+        
+        // Final position adjustments for boss death
+        let bossFloorOffset = (r.type === 'boss') ? 80 * r.scale : 0;
+        let xOffset = 0;
+        if (r.type === 'boss' && r.state === 'die') {
+          xOffset = 50 * r.scale; // Shift right when dead
+          bossFloorOffset = 100 * r.scale; // Lower even more when dead
+        }
+        
         const baselineY = r.y + (baseImg.height * r.scale) / 2 + bossFloorOffset;
         
         const drawW = img.width * r.scale;
         const drawH = img.height * r.scale; 
 
-        ctx.drawImage(img, r.x - drawW/2, baselineY - drawH, drawW, drawH);
+        ctx.drawImage(img, r.x + xOffset - drawW/2, baselineY - drawH, drawW, drawH);
         ctx.restore();
       }
     });
