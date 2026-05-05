@@ -34,8 +34,9 @@ const spriteCache = {};
 
 const sheetFramesCache = {};
 
-function extractFrames(sheet) {
-  if (sheetFramesCache[sheet.src]) return sheetFramesCache[sheet.src];
+function extractFrames(sheet, cols, rows) {
+  const cacheKey = `${sheet.src}_${cols}x${rows}`;
+  if (sheetFramesCache[cacheKey]) return sheetFramesCache[cacheKey];
 
   const canvas = document.createElement('canvas');
   canvas.width = sheet.width;
@@ -46,73 +47,48 @@ function extractFrames(sheet) {
   const data = imgData.data;
 
   function isGreen(x, y) {
+    if (x < 0 || x >= sheet.width || y < 0 || y >= sheet.height) return true;
     const i = (y * sheet.width + x) * 4;
     const r = data[i], g = data[i+1], b = data[i+2];
     return g > 150 && (g - r) > 80 && (g - b) > 80;
   }
 
-  // Find row regions (horizontal bounds)
-  const rowRegions = [];
-  let inRow = false;
-  let rowStart = 0;
-  let emptyCount = 0;
-  for (let y = 0; y < sheet.height; y++) {
-    let empty = true;
-    for (let x = 0; x < sheet.width; x++) {
-      if (!isGreen(x, y)) { empty = false; break; }
-    }
-    if (!empty) {
-      if (!inRow) { inRow = true; rowStart = y; }
-      emptyCount = 0;
-    } else {
-      emptyCount++;
-      if (inRow && emptyCount > 10) { // 10px gap
-        inRow = false;
-        rowRegions.push({ y: rowStart, h: y - rowStart - 10 });
-      }
-    }
-  }
-  if (inRow) rowRegions.push({ y: rowStart, h: sheet.height - rowStart });
-
+  const cellW = sheet.width / cols;
+  const cellH = sheet.height / rows;
   const frames = [];
-  for (const r of rowRegions) {
-    const addFrame = (xPos, yPos, w, h) => {
-      // Estimate if this blob contains multiple frames by checking its width
-      // A typical character frame should not exceed 1/3.5 of the total sheet width
-      const expectedCols = Math.round(w / (sheet.width / 3.5));
-      if (expectedCols >= 2) {
-        const splitW = Math.floor(w / expectedCols);
-        for (let i = 0; i < expectedCols; i++) {
-          frames.push({ x: xPos + i * splitW, y: yPos, w: splitW, h: h });
-        }
-      } else {
-        frames.push({ x: xPos, y: yPos, w: w, h: h });
-      }
-    };
 
-    let inCol = false;
-    let colStart = 0;
-    let colEmptyCount = 0;
-    for (let x = 0; x < sheet.width; x++) {
-      let empty = true;
-      for (let y = r.y; y < r.y + r.h; y++) {
-        if (!isGreen(x, y)) { empty = false; break; }
-      }
-      if (!empty) {
-        if (!inCol) { inCol = true; colStart = x; }
-        colEmptyCount = 0;
-      } else {
-        colEmptyCount++;
-        if (inCol && colEmptyCount > 10) {
-          inCol = false;
-          addFrame(colStart, r.y, x - colStart - 10, r.h);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const startX = Math.floor(c * cellW);
+      const startY = Math.floor(r * cellH);
+      const endX = Math.floor((c + 1) * cellW);
+      const endY = Math.floor((r + 1) * cellH);
+
+      let minX = endX, maxX = startX, minY = endY, maxY = startY;
+      let hasPixels = false;
+
+      // Find the exact bounding box of the character WITHIN this strict grid cell
+      for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+          if (!isGreen(x, y)) {
+            hasPixels = true;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
         }
+      }
+
+      if (hasPixels) {
+        frames.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
+      } else {
+        frames.push({ x: startX, y: startY, w: Math.floor(cellW), h: Math.floor(cellH) });
       }
     }
-    if (inCol) addFrame(colStart, r.y, sheet.width - colStart, r.h);
   }
 
-  sheetFramesCache[sheet.src] = frames;
+  sheetFramesCache[cacheKey] = frames;
   return frames;
 }
 
@@ -123,13 +99,12 @@ function getProcessedSprite(sheetKey, index, defaultCols, defaultRows) {
   const sheet = assets.get(sheetKey);
   if (!sheet) return null;
 
-  const frames = extractFrames(sheet);
+  const frames = extractFrames(sheet, defaultCols, defaultRows);
   
   let frame;
   if (frames.length > 0) {
     frame = frames[Math.min(index, frames.length - 1)];
   } else {
-    // Fallback if auto-slice fails
     const cellW = Math.floor(sheet.width / defaultCols);
     const cellH = Math.floor(sheet.height / defaultRows);
     frame = { 
@@ -182,7 +157,7 @@ export function drawPanda(ctx, x, y, facing, state, frame, gauge) {
     return;
   }
 
-  const drawH = 140; // fixed display height
+  const drawH = 210; // fixed display height (140 * 1.5)
   const scale = drawH / sprite.height;
   const drawW = sprite.width * scale;
 
@@ -236,7 +211,7 @@ export function drawFrog(ctx, x, y, facing, state, frame) {
     return;
   }
 
-  const drawH = 180; // boss is bigger
+  const drawH = 270; // boss is bigger (180 * 1.5)
   const scale = drawH / sprite.height;
   const drawW = sprite.width * scale;
 

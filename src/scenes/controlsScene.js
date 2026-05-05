@@ -36,10 +36,9 @@ export class ControlsScene {
     ctx.textAlign = 'center';
     ctx.fillText('조작 안내', CANVAS_W / 2, 50);
 
-    // Panda demo (Scaled up)
+    // Panda demo (Scaled up natively in sprites.js)
     ctx.save();
     ctx.translate(160, 320);
-    ctx.scale(1.5, 1.5);
     drawPanda(ctx, 0, 0, 1, 'idle', this.frame);
     ctx.restore();
 
