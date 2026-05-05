@@ -58,28 +58,44 @@ export class BattleSceneFPS {
       return;
     }
 
-    // Player Movement
-    const rotSpeed = 0.05;
+    // Player Movement (WASD + Mouse)
+    const rotSpeed = 0.003; // Adjusted for mouse delta
     const moveSpeed = 0.08;
 
-    if (input.isDown('ArrowLeft')) this.player.dir -= rotSpeed;
-    if (input.isDown('ArrowRight')) this.player.dir += rotSpeed;
+    // Rotation via Mouse
+    const mouseDeltaX = input.getMouseDeltaX();
+    this.player.dir += mouseDeltaX * rotSpeed;
 
+    // Movement via WASD
     const moveX = Math.cos(this.player.dir) * moveSpeed;
     const moveY = Math.sin(this.player.dir) * moveSpeed;
+    const strafeX = Math.cos(this.player.dir + Math.PI / 2) * moveSpeed;
+    const strafeY = Math.sin(this.player.dir + Math.PI / 2) * moveSpeed;
 
-    if (input.isDown('ArrowUp')) {
+    if (input.isDown('KeyW') || input.isDown('ArrowUp')) {
       if (MAP[Math.floor(this.player.y)][Math.floor(this.player.x + moveX)] === 0) this.player.x += moveX;
       if (MAP[Math.floor(this.player.y + moveY)][Math.floor(this.player.x)] === 0) this.player.y += moveY;
     }
-    if (input.isDown('ArrowDown')) {
+    if (input.isDown('KeyS') || input.isDown('ArrowDown')) {
       if (MAP[Math.floor(this.player.y)][Math.floor(this.player.x - moveX)] === 0) this.player.x -= moveX;
       if (MAP[Math.floor(this.player.y - moveY)][Math.floor(this.player.x)] === 0) this.player.y -= moveY;
     }
+    if (input.isDown('KeyA')) {
+      if (MAP[Math.floor(this.player.y)][Math.floor(this.player.x - strafeX)] === 0) this.player.x -= strafeX;
+      if (MAP[Math.floor(this.player.y - strafeY)][Math.floor(this.player.x)] === 0) this.player.y -= strafeY;
+    }
+    if (input.isDown('KeyD')) {
+      if (MAP[Math.floor(this.player.y)][Math.floor(this.player.x + strafeX)] === 0) this.player.x += strafeX;
+      if (MAP[Math.floor(this.player.y + strafeY)][Math.floor(this.player.x)] === 0) this.player.y += strafeY;
+    }
 
-    // Shooting
+    // Shooting (Left Click or Z)
     if (this.player.weaponTimer > 0) this.player.weaponTimer--;
-    if (input.justPressed('KeyZ') && this.player.weaponTimer === 0) {
+    if ((input.justPressed('KeyZ') || input.justClicked()) && this.player.weaponTimer === 0) {
+      // Request Pointer Lock on first click
+      if (document.pointerLockElement !== this.game.canvas) {
+        this.game.canvas.requestPointerLock();
+      }
       this.player.weaponTimer = 10;
       this.game.sound.laser();
       this.shake = 5;
@@ -239,6 +255,16 @@ export class BattleSceneFPS {
       ctx.fillStyle = '#fbbf24';
       ctx.textAlign = 'center';
       ctx.fillText('STAGE 2 CLEAR!', CANVAS_W/2, CANVAS_H/2);
+    }
+
+    // Pointer Lock Instructions
+    if (document.pointerLockElement !== this.game.canvas && this.winTimer === 0 && this.player.hp > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, CANVAS_H/2 - 40, CANVAS_W, 80);
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px "Press Start 2P"';
+      ctx.textAlign = 'center';
+      ctx.fillText('CLICK TO LOCK MOUSE & PLAY', CANVAS_W/2, CANVAS_H/2 + 5);
     }
 
     ctx.restore();

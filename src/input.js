@@ -21,6 +21,24 @@ export class InputManager {
       this.justReleasedKeys[e.code] = true;
       e.preventDefault();
     });
+
+    // Mouse support
+    this.mouseDeltaX = 0;
+    this.mouseClicked = false;
+    this.mouseDown = false;
+
+    window.addEventListener('mousemove', (e) => {
+      this.mouseDeltaX += e.movementX || 0;
+    });
+
+    window.addEventListener('mousedown', () => {
+      this.mouseClicked = true;
+      this.mouseDown = true;
+    });
+
+    window.addEventListener('mouseup', () => {
+      this.mouseDown = false;
+    });
   }
 
   _checkDoubleTap(code) {
@@ -56,11 +74,27 @@ export class InputManager {
   }
 
   anyKeyPressed() {
-    return Object.keys(this.justPressedKeys).length > 0;
+    return Object.keys(this.justPressedKeys).length > 0 || this.mouseClicked;
+  }
+
+  getMouseDeltaX() {
+    const d = this.mouseDeltaX;
+    this.mouseDeltaX = 0;
+    return d;
+  }
+
+  isMouseDown() {
+    return this.mouseDown;
+  }
+
+  justClicked() {
+    return this.mouseClicked;
   }
 
   endFrame() {
     this.justPressedKeys = {};
     this.justReleasedKeys = {};
+    this.mouseClicked = false;
+    this.mouseDeltaX = 0;
   }
 }
