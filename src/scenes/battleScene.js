@@ -445,17 +445,22 @@ export class BattleScene {
         ctx.fillText('K.O.!', CANVAS_W / 2, CANVAS_H / 2);
         break;
       case 'victory':
-        ctx.font = '30px "Press Start 2P"';
-        ctx.fillStyle = '#22c55e';
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-        ctx.strokeText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2 - 20);
-        ctx.fillText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2 - 20);
+        ctx.save();
+        ctx.font = '60px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 10;
+        ctx.strokeText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2);
+        ctx.restore();
         if (this.phaseTimer > 60 && Math.floor(this.phaseTimer / 20) % 2 === 0) {
           ctx.font = '12px "Press Start 2P"';
           ctx.fillStyle = '#fff';
-          ctx.fillText('PRESS ANY KEY', CANVAS_W / 2, CANVAS_H / 2 + 20);
+          ctx.fillText('PRESS ANY KEY', CANVAS_W / 2, CANVAS_H / 2 + 50);
         }
         break;
+
       case 'defeat':
         ctx.font = '30px "Press Start 2P"';
         ctx.fillStyle = '#ef4444';

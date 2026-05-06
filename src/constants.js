@@ -19,7 +19,8 @@ export const PANDA_KICK_DMG = 10;
 export const PANDA_LASER_DMG = 35;
 export const PANDA_PUNCH_RANGE = 120;
 export const PANDA_KICK_RANGE = 140;
-export const GAUGE_PER_HIT = 15; // gauge gained when hit
+export const GAUGE_PER_HIT = 25; // gauge gained when hit (Increased for faster charge)
+
 export const MAX_GAUGE = 100;
 
 // Boss Stats
@@ -54,3 +55,15 @@ export const COLORS = {
 // Stage boundaries
 export const STAGE_LEFT = 40;
 export const STAGE_RIGHT = 920;
+
+// Stage 3 Constants
+export const PROFESSOR_LEE_HP = 600;
+export const SHOOTER_SCROLL_SPEED = 2;
+export const PANDA_BULLET_SPEED = 10;
+export const PANDA_BULLET_DMG = 5;
+export const PANDA_EYE_LASER_DMG = 50;
+export const PANDA_EYE_LASER_COOLDOWN = 120; // 2 seconds at 60fps
+export const PAPER_SPEED = 4;
+export const PAPER_DMG = 10;
+export const EYE_BEAM_DMG = 20;
+

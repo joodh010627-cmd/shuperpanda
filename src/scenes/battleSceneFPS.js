@@ -352,7 +352,19 @@ export class BattleSceneFPS {
     
     ctx.textAlign = 'center';
     if (this.player.hp <= 0) { ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#f00'; ctx.fillText('GAME OVER', CANVAS_W/2, CANVAS_H/2); }
-    if (this.winTimer > 0) { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#fbbf24'; ctx.fillText('STAGE 2 CLEAR!', CANVAS_W/2, CANVAS_H/2); }
+    if (this.winTimer > 0) {
+      if (this.winTimer === 1) this.game.sound.victory();
+      ctx.save();
+      ctx.font = '60px "Press Start 2P"';
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 10;
+      ctx.strokeText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2);
+      ctx.restore();
+    }
+
     
     ctx.restore();
   }

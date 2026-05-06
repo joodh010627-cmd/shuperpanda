@@ -1,36 +1,21 @@
 import { CANVAS_W, CANVAS_H } from '../constants.js';
 import { assets } from '../assetLoader.js';
 
-// Cutscenes now display the original comic panel images directly
-// Each cutscene is simply the original image shown full-screen with dialog overlay
 const CUTSCENES = {
   stage1: {
     image: 'cutscene_stage1',
-    dialogs: [
-      { speaker: '슈퍼 판다', text: '앗, 벌써 퇴근 시간이네?\n슬슬 일어나야지.' },
-      { speaker: '슈퍼 판다', text: '과장님, 이만 퇴근해\n보겠습니다!' },
-      { speaker: '개구리 과장', text: '아하하~~~\n퇴근이래 퇴근!!\n너무 웃겨!!!' },
-      { speaker: '개구리 과장', text: '너가 퇴근을 할 수\n있을 것 같아?!\n어림 없어!!' },
-      { speaker: '슈퍼 판다', text: '...쳇,\n후회하지 마세요!' },
-    ],
     next: 'controls'
   },
   stage2: {
     image: 'cutscene_stage2',
-    dialogs: [
-      { speaker: '개구리 과장', text: '슈 인턴,\n내가 졌어...\n퇴근해도 좋아ㅠ' },
-      { speaker: '슈퍼 판다', text: '감사합니다~\n맛저하세요!' },
-      { speaker: '슈퍼 판다', text: '어?\n안녕하세요' },
-      { speaker: '커피 더 헛', text: '아까 텀블러 뚜껑\n안 열어서 건내줬지?\n복수하러 왔다!!' },
-      { speaker: '슈퍼 판다', text: '네? 죄송해요,\n다음에는 잘 드릴게요\nㅎㅎ;;' },
-    ],
     next: 'animation_stage'
   },
   stage3: {
     image: 'cutscene_stage3',
-    dialogs: [
-      { speaker: '슈퍼 판다', text: '이제 집에 다 와가는 것 같아!' },
-    ],
+    next: 'controls_stage3'
+  },
+  ending: {
+    image: 'cutscene_ending',
     next: 'title'
   }
 };
@@ -50,7 +35,6 @@ export class CutsceneScene {
       return;
     }
 
-    // Skip the cutscene on any key press
     if (input.anyKeyPressed()) {
       this.game.sound.menuSelect();
       this.game.switchScene(this.data.next);

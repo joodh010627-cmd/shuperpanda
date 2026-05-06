@@ -9,6 +9,8 @@ import { BattleScene } from './scenes/battleScene.js';
 import { VideoScene } from './scenes/videoScene.js';
 import { BattleSceneFPS } from './scenes/battleSceneFPS.js';
 import { ControlsSceneFPS } from './scenes/controlsSceneFPS.js';
+import { ControlsSceneStage3 } from './scenes/controlsSceneStage3.js';
+import { BattleSceneStage3 } from './scenes/battleSceneStage3.js';
 
 class Game {
   constructor() {
@@ -33,7 +35,12 @@ class Game {
     this._showLoading();
     assets.loadAll().then(() => {
       this.loading = false;
-      this.switchScene('title');
+      
+      // Support jumping to a specific scene via URL parameter (e.g., ?scene=battle_stage3)
+      const urlParams = new URLSearchParams(window.location.search);
+      const startScene = urlParams.get('scene') || 'title';
+      
+      this.switchScene(startScene);
       this._loop();
     });
   }
@@ -100,6 +107,15 @@ class Game {
         break;
       case 'cutscene_stage3':
         this.scene = new CutsceneScene(this, 'stage3');
+        break;
+      case 'controls_stage3':
+        this.scene = new ControlsSceneStage3(this);
+        break;
+      case 'battle_stage3':
+        this.scene = new BattleSceneStage3(this);
+        break;
+      case 'cutscene_ending':
+        this.scene = new CutsceneScene(this, 'ending');
         break;
       case 'controls':
         this.scene = new ControlsScene(this);

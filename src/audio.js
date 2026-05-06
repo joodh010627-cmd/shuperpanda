@@ -53,6 +53,17 @@ export class SoundManager {
   tongue() { this._play(300, 'sine', 0.2, 0.15); }
   stomp() { this._play(60, 'square', 0.3, 0.3); this._noise(0.15, 0.2); }
   ko() { this._play(400, 'square', 0.1, 0.2); this._play(300, 'square', 0.15, 0.2); this._play(200, 'square', 0.2, 0.2); }
+  autoFire() { this._play(600, 'square', 0.05, 0.05); }
+  charge() { 
+    for(let i=0; i<10; i++) {
+      setTimeout(() => this._play(200 + i * 100, 'sawtooth', 0.1, 0.1), i * 50);
+    }
+  }
+  explosion() {
+    this._noise(0.5, 0.4);
+    this._play(100, 'square', 0.4, 0.3);
+    this._play(50, 'square', 0.6, 0.3);
+  }
   victory() {
     [523, 659, 784, 1047].forEach((f, i) => {
       setTimeout(() => this._play(f, 'square', 0.3, 0.15), i * 150);
@@ -61,3 +72,4 @@ export class SoundManager {
   menuSelect() { this._play(660, 'square', 0.08, 0.1); }
   gaugeMax() { this._play(880, 'sine', 0.3, 0.15); this._play(1100, 'sine', 0.2, 0.1); }
 }
+
