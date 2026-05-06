@@ -170,7 +170,9 @@ export class BattleSceneFPS {
 
   _doSpawnMinis() {
     const baseBoss = assets.get('image_21');
-    const bossBaselineY = this.boss.y + (baseBoss.height * this.boss.scale) / 2 + (80 * this.boss.scale);
+    const feetY = this.boss.y + (baseBoss.height * this.boss.scale) / 2 + (80 * this.boss.scale);
+    // Compromise height: 30% up from feet towards center
+    const spawnY = feetY - (feetY - this.boss.y) * 0.3;
     const bossX = this.boss.x;
 
     for (let i = 0; i < 5; i++) {
@@ -185,9 +187,9 @@ export class BattleSceneFPS {
       this.enemies.push({
         id: `mini_${this.wave}_${i}`,
         x: bossX, 
-        y: bossBaselineY, // Start from boss's feet
+        y: spawnY, 
         vx: (targetX - bossX) / framesToReach,
-        vy: (targetY - bossBaselineY) / framesToReach,
+        vy: (targetY - spawnY) / framesToReach,
         scale: 0.02,
         vScale: (0.3 - 0.02) / framesToReach,
         type: 'mini',
@@ -198,6 +200,7 @@ export class BattleSceneFPS {
       });
     }
   }
+
 
 
 
