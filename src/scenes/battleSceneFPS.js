@@ -169,8 +169,9 @@ export class BattleSceneFPS {
   }
 
   _doSpawnMinis() {
+    const baseBoss = assets.get('image_21');
+    const bossBaselineY = this.boss.y + (baseBoss.height * this.boss.scale) / 2 + (80 * this.boss.scale);
     const bossX = this.boss.x;
-    const bossY = this.boss.y;
 
     for (let i = 0; i < 5; i++) {
       // Wider spread as they reach the player
@@ -184,9 +185,9 @@ export class BattleSceneFPS {
       this.enemies.push({
         id: `mini_${this.wave}_${i}`,
         x: bossX, 
-        y: bossY,
+        y: bossBaselineY, // Start from boss's feet
         vx: (targetX - bossX) / framesToReach,
-        vy: (targetY - bossY) / framesToReach,
+        vy: (targetY - bossBaselineY) / framesToReach,
         scale: 0.02,
         vScale: (0.3 - 0.02) / framesToReach,
         type: 'mini',
@@ -197,6 +198,7 @@ export class BattleSceneFPS {
       });
     }
   }
+
 
 
   _checkHit(mx, my, isWaveCleared) {
