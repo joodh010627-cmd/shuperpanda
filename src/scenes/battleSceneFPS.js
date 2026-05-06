@@ -169,20 +169,24 @@ export class BattleSceneFPS {
   }
 
   _doSpawnMinis() {
-    const baseBoss = assets.get('image_21');
-    const bossBaselineY = this.boss.y + (baseBoss.height * this.boss.scale) / 2;
+    const bossX = this.boss.x;
+    const bossY = this.boss.y;
 
     for (let i = 0; i < 5; i++) {
-      const targetX = CANVAS_W/2 + (Math.random() - 0.5) * 600;
-      const targetY = CANVAS_H/2 + 70 + Math.random() * 130;
-      const framesToReach = 180 + Math.random() * 120;
+      // Wider spread as they reach the player
+      const targetX = CANVAS_W/2 + (Math.random() - 0.5) * 800;
+      // Uniform floor height at arrival
+      const targetY = 480; 
+      
+      // 120% speed (Reduced framesToReach: from 180-300 down to 140-200)
+      const framesToReach = 140 + Math.random() * 60;
       
       this.enemies.push({
         id: `mini_${this.wave}_${i}`,
-        x: this.boss.x, 
-        y: bossBaselineY - 10,
-        vx: (targetX - this.boss.x) / framesToReach,
-        vy: (targetY - bossBaselineY) / framesToReach,
+        x: bossX, 
+        y: bossY,
+        vx: (targetX - bossX) / framesToReach,
+        vy: (targetY - bossY) / framesToReach,
         scale: 0.02,
         vScale: (0.3 - 0.02) / framesToReach,
         type: 'mini',
@@ -193,6 +197,7 @@ export class BattleSceneFPS {
       });
     }
   }
+
 
   _checkHit(mx, my, isWaveCleared) {
     let hitEnemy = null;
