@@ -19,7 +19,8 @@ const shooterSpriteNumbers = [
   51, 52, 53, 54, 55, 56, 57, 58, 59, // Super Panda
   61, 62, 63, 64, 65, 66,             // Professor Lee
   71, 72, 73, 74,                     // Paper
-  81, 91, 101                         // Finishing move
+  81, 91, 101, 102                         // Finishing move
+
 ];
 
 for (let i = 1; i <= 20; i++) {
@@ -48,10 +49,11 @@ class AssetLoader {
         img.crossOrigin = 'anonymous';
         img.onload = () => {
           const num = parseInt(key.split('_')[1]);
-          // Apply background removal to FPS sprites and Shooter sprites
-          if (key.startsWith('image_') && (fpsSpriteNumbers.includes(num) || shooterSpriteNumbers.includes(num))) {
+          // Apply background removal to FPS sprites and Shooter sprites (except image_102)
+          if (key.startsWith('image_') && num !== 102 && (fpsSpriteNumbers.includes(num) || shooterSpriteNumbers.includes(num))) {
             this.images[key] = this._removeBackground(img);
           } else {
+
             this.images[key] = img;
           }
           this.loaded++;

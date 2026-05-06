@@ -14,6 +14,9 @@ export class BattleSceneFPS {
     
     this.wave = 0;
     this.waveTimer = 0; 
+    this.spawnTimer = 0; // Independent timer for spawning logic
+    this.isSpawning = false; // Flag to ensure spawning isn't interrupted
+
     this.boss = { 
       id: 'boss', x: CANVAS_W / 2, y: CANVAS_H / 2 - 20, type: 'boss', hp: 500, active: true, scale: 0.225,
       state: 'idle', stateTimer: 0, spawnTriggered: false
@@ -47,8 +50,8 @@ export class BattleSceneFPS {
     const activeMinis = this.enemies.filter(e => e.type === 'mini' && e.active && e.state !== 'die');
     const isWaveCleared = (activeMinis.length === 0);
 
-    // Wave logic
-    if (isWaveCleared && this.boss.hp > 0 && this.boss.state !== 'die') {
+    // Wave Countdown logic - Only runs if no minis and not currently spawning
+    if (isWaveCleared && this.boss.hp > 0 && this.boss.state !== 'die' && !this.isSpawning) {
       if (this.waveTimer === 0) {
         this.waveTimer = 180; // 3 seconds wait
       } else {
@@ -59,10 +62,23 @@ export class BattleSceneFPS {
       }
     }
 
-    // Delayed spawn for minis (0.2s = 12 frames after boss state change)
-    if (this.boss.state === 'spawn' && !this.boss.spawnTriggered && this.boss.stateTimer >= 12) {
-      this._doSpawnMinis();
-      this.boss.spawnTriggered = true;
+    // Independent Spawning Logic - CANNOT be interrupted by hits
+    if (this.isSpawning) {
+      this.spawnTimer++;
+      // Set boss to spawn state visually if possible
+      if (this.boss.state !== 'die' && this.boss.state !== 'hit') {
+        this.boss.state = 'spawn';
+      }
+      
+      if (this.spawnTimer === 12) {
+        this._doSpawnMinis();
+      }
+      
+      if (this.spawnTimer >= 60) {
+        this.isSpawning = false;
+        this.spawnTimer = 0;
+        if (this.boss.state === 'spawn') this.boss.state = 'idle';
+      }
     }
 
     // Victory check
@@ -131,10 +147,7 @@ export class BattleSceneFPS {
           if (e.stateTimer > 120) e.active = false;
           return;
         }
-        if (e.state === 'spawn' && e.stateTimer > 60) {
-          e.state = 'idle';
-        }
-        
+        // Boss state logic for hits
         if (e.state !== 'hit' && e.state !== 'spawn') {
           e.state = 'idle';
         }
@@ -145,13 +158,13 @@ export class BattleSceneFPS {
   _startWaveSpawn() {
     this.wave++;
     this.waveTimer = 0;
-    this.boss.state = 'spawn';
-    this.boss.stateTimer = 0;
-    this.boss.spawnTriggered = false;
+    this.isSpawning = true;
+    this.spawnTimer = 0;
+    // Set visual state, but logic is now in update()
+    if (this.boss.state !== 'die') this.boss.state = 'spawn';
   }
 
   _spawnWave() {
-    // Initial wave
     this._startWaveSpawn();
   }
 
@@ -160,16 +173,14 @@ export class BattleSceneFPS {
     const bossBaselineY = this.boss.y + (baseBoss.height * this.boss.scale) / 2;
 
     for (let i = 0; i < 5; i++) {
-      // Target scatter location
       const targetX = CANVAS_W/2 + (Math.random() - 0.5) * 600;
       const targetY = CANVAS_H/2 + 70 + Math.random() * 130;
-      
-      const framesToReach = 180 + Math.random() * 120; // 3-5 seconds to reach player
+      const framesToReach = 180 + Math.random() * 120;
       
       this.enemies.push({
         id: `mini_${this.wave}_${i}`,
         x: this.boss.x, 
-        y: bossBaselineY - 10, // Start slightly above boss baseline
+        y: bossBaselineY - 10,
         vx: (targetX - this.boss.x) / framesToReach,
         vy: (targetY - bossBaselineY) / framesToReach,
         scale: 0.02,
@@ -185,21 +196,17 @@ export class BattleSceneFPS {
 
   _checkHit(mx, my, isWaveCleared) {
     let hitEnemy = null;
-    
-    // Sort active enemies by scale descending (closest to screen first)
     const renderables = this.enemies.filter(e => e.active && e.state !== 'die');
     renderables.sort((a,b) => b.scale - a.scale);
 
     for (let e of renderables) {
-      if (e.type === 'boss' && (!isWaveCleared || e.state === 'die')) continue; // Boss is invulnerable while Minis exist
+      if (e.type === 'boss' && (!isWaveCleared || e.state === 'die')) continue;
 
       const baseImg = assets.get(e.type === 'boss' ? 'image_21' : 'image_31');
       if (!baseImg) continue;
 
       const drawW = baseImg.width * e.scale;
       const drawH = baseImg.height * e.scale;
-      
-      // Hitbox based on bottom alignment
       const baselineY = e.y + (baseImg.height * e.scale) / 2;
       const left = e.x - drawW/2;
       const right = e.x + drawW/2;
@@ -229,8 +236,7 @@ export class BattleSceneFPS {
   _spawnParticles(x, y, count) {
     for (let i=0; i<count; i++) {
       this.particles.push({
-        x: x,
-        y: y,
+        x: x, y: y,
         vx: (Math.random()-0.5)*10,
         vy: (Math.random()-1)*10,
         life: 20 + Math.random()*10,
@@ -243,21 +249,17 @@ export class BattleSceneFPS {
     ctx.save();
     if (this.shake > 0) ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
     
-    // 2D Background
     const bg = assets.get('battle2_bg');
     if (bg) {
       ctx.drawImage(bg, 0, 0, CANVAS_W, CANVAS_H);
     } else {
-      ctx.fillStyle = '#64748b';
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.fillStyle = '#64748b'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     }
 
     if (this.player.hitTimer > 0) {
-      ctx.fillStyle = 'rgba(100, 20, 20, 0.3)';
-      ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+      ctx.fillStyle = 'rgba(100, 20, 20, 0.3)'; ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
     }
 
-    // Sort renderables: Boss always first (bottom layer), then minis by scale (further away drawn first)
     let renderables = this.enemies.filter(e => e.active);
     renderables.sort((a,b) => {
       if (a.type === 'boss') return -1;
@@ -281,7 +283,7 @@ export class BattleSceneFPS {
           case 'move': imgKey = (Math.floor(this.frame / 10) % 2 === 0) ? 'image_32' : 'image_33'; break;
           case 'attack': imgKey = 'image_34'; break;
           case 'hit': imgKey = (r.hitFlip % 2 === 0) ? 'image_35' : 'image_36'; break;
-          case 'die': imgKey = (r.hitFlip % 2 === 0) ? 'image_35' : 'image_36'; break; // Use hit frame for dying
+          case 'die': imgKey = (r.hitFlip % 2 === 0) ? 'image_35' : 'image_36'; break;
         }
       }
       
@@ -291,23 +293,15 @@ export class BattleSceneFPS {
         if (r.type === 'mini' && r.state === 'die') {
           if (r.stateTimer > 30 && Math.floor(r.stateTimer / 5) % 2 === 0) ctx.globalAlpha = 0;
         }
-
-        // Draw with bottom alignment based on the idle image's bottom coordinate
         const baseImg = assets.get(r.type === 'boss' ? 'image_21' : 'image_31');
-        
-        // Final position adjustments for boss death
         let bossFloorOffset = (r.type === 'boss') ? 80 * r.scale : 0;
         let xOffset = 0;
         if (r.type === 'boss' && r.state === 'die') {
-          xOffset = 50 * r.scale; // Shift right when dead
-          bossFloorOffset = 100 * r.scale; // Lower even more when dead
+          xOffset = 50 * r.scale; bossFloorOffset = 100 * r.scale;
         }
-        
         const baselineY = r.y + (baseImg.height * r.scale) / 2 + bossFloorOffset;
-        
         const drawW = img.width * r.scale;
         const drawH = img.height * r.scale; 
-
         ctx.drawImage(img, r.x + xOffset - drawW/2, baselineY - drawH, drawW, drawH);
         ctx.restore();
       }
@@ -315,7 +309,6 @@ export class BattleSceneFPS {
 
     this.particles.forEach(pt => { ctx.fillStyle = pt.color; ctx.fillRect(pt.x, pt.y, 4, 4); });
     
-    // Weapon (Panda Arm)
     const armKey = this.player.weaponTimer > 0 ? 'image_42' : 'image_41';
     const weaponImg = assets.get(armKey);
     if (weaponImg) {
@@ -323,30 +316,20 @@ export class BattleSceneFPS {
       ctx.drawImage(weaponImg, (CANVAS_W - wWidth) / 2, CANVAS_H - wHeight + 10 + (this.player.weaponTimer > 0 ? 30 : 0), wWidth, wHeight);
     }
 
-    // Laser
     if (this.laser > 0) {
       ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)'; ctx.lineWidth = 4 + Math.random()*2; ctx.beginPath();
-      ctx.moveTo(CANVAS_W/2 + 80, CANVAS_H - 100); 
-      ctx.lineTo(this.player.mouseX, this.player.mouseY);
-      ctx.stroke();
+      ctx.moveTo(CANVAS_W/2 + 80, CANVAS_H - 100); ctx.lineTo(this.player.mouseX, this.player.mouseY); ctx.stroke();
     }
 
-    // Crosshair
-    const cx = this.player.mouseX;
-    const cy = this.player.mouseY;
+    const cx = this.player.mouseX; const cy = this.player.mouseY;
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath();
-    ctx.moveTo(cx - 15, cy); ctx.lineTo(cx + 15, cy);
-    ctx.moveTo(cx, cy - 15); ctx.lineTo(cx, cy + 15); ctx.stroke();
+    ctx.moveTo(cx - 15, cy); ctx.lineTo(cx + 15, cy); ctx.moveTo(cx, cy - 15); ctx.lineTo(cx, cy + 15); ctx.stroke();
 
-    // HUD
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#fff'; ctx.font = '20px "Press Start 2P"';
+    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = '20px "Press Start 2P"';
     ctx.fillText(`HP: ${Math.ceil(this.player.hp)}`, 20, CANVAS_H - 20);
-    
     const activeMinis = this.enemies.filter(e => e.type === 'mini' && e.active && e.state !== 'die');
     if (this.boss.active) { 
-      ctx.textAlign = 'right';
-      ctx.fillStyle = activeMinis.length === 0 ? '#0f0' : '#f00'; 
+      ctx.textAlign = 'right'; ctx.fillStyle = activeMinis.length === 0 ? '#0f0' : '#f00'; 
       ctx.fillText(activeMinis.length === 0 ? `BOSS VULNERABLE: ${Math.ceil(this.boss.hp)}` : `BOSS IMMUNE`, CANVAS_W - 20, 40); 
     }
     
@@ -354,19 +337,9 @@ export class BattleSceneFPS {
     if (this.player.hp <= 0) { ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0, CANVAS_W, CANVAS_H); ctx.fillStyle = '#f00'; ctx.fillText('GAME OVER', CANVAS_W/2, CANVAS_H/2); }
     if (this.winTimer > 0) {
       if (this.winTimer === 1) this.game.sound.victory();
-      ctx.save();
-      ctx.font = '60px "Press Start 2P"';
-      ctx.textAlign = 'center';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 10;
-      ctx.strokeText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2);
-      ctx.restore();
+      ctx.save(); ctx.font = '60px "Press Start 2P"'; ctx.textAlign = 'center'; ctx.strokeStyle = '#000'; ctx.lineWidth = 10;
+      ctx.strokeText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2); ctx.fillStyle = '#fbbf24'; ctx.fillText('YOU WIN!', CANVAS_W / 2, CANVAS_H / 2); ctx.restore();
     }
-
-    
     ctx.restore();
   }
 }
-

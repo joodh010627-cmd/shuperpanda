@@ -51,7 +51,7 @@ export class ControlsSceneStage3 {
     ctx.font = '16px "Press Start 2P"';
     ctx.fillStyle = '#fff';
     ctx.fillText('상하좌우 이동: 방향키', CANVAS_W / 2, boxY + 10);
-    ctx.fillText('레이저 공격: Z키', CANVAS_W / 2, boxY + 50);
+    ctx.fillText('Z 키: 눈빛 레이저(2초 쿨타임)', CANVAS_W / 2, boxY + 50);
     
     ctx.fillStyle = '#ff5555';
     ctx.fillText('마무리 일격: X키', CANVAS_W / 2, boxY + 95);

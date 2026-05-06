@@ -8,11 +8,13 @@ export class BattleSceneStage3 {
     this.scrollX = 0;
     this.shake = 0;
     
-    // Constant targets for consistent scaling
-    this.PANDA_H = 130; // Reduced to 70% (was 180)
-    this.BOSS_W = 144; 
-    this.SIDEKICK_W = 220;
-
+    // Base scaling constants
+    this.PANDA_H_BASE = 104; // Normal frames (51, 52, 57, 59)
+    this.PANDA_H_LARGE = 195; // Attack frames (53, 54, 55, 56)
+    this.PANDA_H_HIT = 156;   // Hit frame (58) - Reduced to 80% of 195
+    this.BOSS_W_BASE = 115; 
+    this.PAPER_W_BASE = 80;  
+    this.SIDEKICK_W_BASE = 173; // Reduced to 80% of 216
 
     // Player (Super Panda)
     this.player = {
@@ -24,7 +26,7 @@ export class BattleSceneStage3 {
       specialTimer: 0,
       hitTimer: 0,
       state: 'idle',
-      stateTimer: 0, // Used for natural animation transitions
+      stateTimer: 0, 
       eyeLaserActive: 0
     };
 
@@ -229,8 +231,8 @@ export class BattleSceneStage3 {
     }
     for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
       let p = this.enemyProjectiles[i];
-      if (p.x > this.player.x - 80 && p.x < this.player.x + 80 &&
-          p.y > this.player.y - 80 && p.y < this.player.y + 80) {
+      if (p.x > this.player.x - 60 && p.x < this.player.x + 60 &&
+          p.y > this.player.y - 60 && p.y < this.player.y + 60) {
         this._hitPlayer(PAPER_DMG / 2);
         this.enemyProjectiles.splice(i, 1);
         this._spawnParticles(p.x, p.y, 5, '#fff');
@@ -289,6 +291,8 @@ export class BattleSceneStage3 {
       const dy = targetY - this.player.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
+      this.player.state = 'charge'; 
+
       if (this.frame % 3 === 0) {
         this._spawnParticles(this.player.x, this.player.y, 5, '#fbbf24');
         this._spawnParticles(this.player.x, this.player.y, 3, '#fff');
@@ -297,6 +301,7 @@ export class BattleSceneStage3 {
       if (dist < 40) {
         this.boss.state = 'die';
         this.gameClear = true;
+        this.player.state = 'finish'; 
         this.game.sound.explosion();
         this.finishingMove.flash = 20;
         this.shake = 30; 
@@ -331,9 +336,10 @@ export class BattleSceneStage3 {
     this._renderProjectiles(ctx);
     this._renderUI(ctx);
 
-    // Finishing Move Flash (image_101) - Top Layer
+    // Finishing Move Flash (image_102) - fit to width exactly
     if (this.finishingMove.active && this.finishingMove.phase === 0) {
-      const flashImg = assets.get('image_101');
+      const flashImg = assets.get('image_102');
+
       if (flashImg) {
         const fW = CANVAS_W;
         const fH = flashImg.height * (fW / flashImg.width);
@@ -386,15 +392,25 @@ export class BattleSceneStage3 {
       case 'back': imgKey = (t < 8) ? 'image_51' : 'image_56'; break;
       case 'special': imgKey = 'image_57'; break;
       case 'hit': imgKey = 'image_58'; break;
+      case 'charge': imgKey = 'image_52'; break; 
+      case 'finish': imgKey = 'image_51'; break;
     }
     
-    if (this.gameClear) imgKey = 'image_59';
+    if (this.gameClear && this.player.state !== 'finish') imgKey = 'image_59';
     if (this.gameDefeat) imgKey = 'image_58';
 
     const img = assets.get(imgKey);
     if (img) {
-      const destW = img.width * (this.PANDA_H / img.height);
-      ctx.drawImage(img, this.player.x - destW/2, this.player.y - this.PANDA_H/2, destW, this.PANDA_H);
+      let targetH = this.PANDA_H_BASE;
+      const keyNum = parseInt(imgKey.split('_')[1]);
+      if ([53, 54, 55, 56].includes(keyNum)) {
+        targetH = this.PANDA_H_LARGE;
+      } else if (keyNum === 58) {
+        targetH = this.PANDA_H_HIT;
+      }
+
+      const destW = img.width * (targetH / img.height);
+      ctx.drawImage(img, this.player.x - destW/2, this.player.y - targetH/2, destW, targetH);
       
       if (this.player.eyeLaserActive > 0) {
         ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)'; ctx.lineWidth = 40; ctx.beginPath();
@@ -406,13 +422,15 @@ export class BattleSceneStage3 {
       if (this.finishingMove.active && this.finishingMove.phase === 1) {
         const s1 = assets.get('image_81'); const s2 = assets.get('image_91');
         if (s1) {
-          const s1H = s1.height * (this.BOSS_W / s1.width);
-          ctx.drawImage(s1, this.player.x - 180, this.player.y - 200, this.BOSS_W, s1H);
+          const s1H = s1.height * (this.SIDEKICK_W_BASE / s1.width);
+          ctx.drawImage(s1, this.player.x - 180, this.player.y - 180, this.SIDEKICK_W_BASE, s1H);
         }
         if (s2) {
-          const s2H = s2.height * (this.BOSS_W / s2.width);
-          ctx.drawImage(s2, this.player.x - 180, this.player.y + 80, this.BOSS_W, s2H);
+          const s2H = s2.height * (this.SIDEKICK_W_BASE / s2.width);
+          // image_91 positioned slightly higher as requested (+40 instead of +60)
+          ctx.drawImage(s2, this.player.x - 180, this.player.y + 40, this.SIDEKICK_W_BASE, s2H);
         }
+
       }
     }
   }
@@ -428,8 +446,8 @@ export class BattleSceneStage3 {
     if (img) {
       ctx.save();
       if (this.boss.hitTimer > 0) ctx.filter = 'brightness(1.5) sepia(0.5) hue-rotate(-50deg)';
-      const destH = img.height * (this.BOSS_W / img.width);
-      ctx.drawImage(img, this.boss.x - this.BOSS_W/2, this.boss.y - destH/2, this.BOSS_W, destH);
+      const destH = img.height * (this.BOSS_W_BASE / img.width);
+      ctx.drawImage(img, this.boss.x - this.BOSS_W_BASE/2, this.boss.y - destH/2, this.BOSS_W_BASE, destH);
       ctx.restore();
       
       if (this.boss.state === 'attack_beam') {
@@ -445,7 +463,7 @@ export class BattleSceneStage3 {
       const paperKey = `image_7${(Math.floor(p.frame / 5) % 4) + 1}`;
       const img = assets.get(paperKey);
       if (img) {
-        const pW = 100;
+        const pW = this.PAPER_W_BASE;
         const pH = img.height * (pW / img.width);
         ctx.drawImage(img, p.x - pW/2, p.y - pH/2, pW, pH);
       }
